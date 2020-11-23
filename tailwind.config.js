@@ -1,8 +1,10 @@
+// tailwind.config.js
 module.exports = {
-    variants: {},
-    plugins: [],
-    purge: process.env.NODE_ENV === 'production' ? {
-      enabled: true,
-      content: ['src/**/*.njk', 'src/**/*.js'],
-    } : {}
-  }
+  purge: [
+    './src/**/*.njk',
+    './src/**/*.js',
+  ],
+  theme: {},
+  variants: {},
+  plugins: [],
+}
