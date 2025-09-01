@@ -2,7 +2,7 @@
 import styles from "./page.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGithub, faLinkedin, faXTwitter } from "@fortawesome/free-brands-svg-icons";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback, type CSSProperties } from "react";
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -19,63 +19,7 @@ export default function Home() {
     "var(--green)",
   ];
 
-  useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      const x = `${e.clientX}px`;
-      const y = `${e.clientY}px`;
-      document.documentElement.style.setProperty("--mouse-x", x);
-      document.documentElement.style.setProperty("--mouse-y", y);
-    };
-    window.addEventListener("mousemove", handleMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMove as any);
-  }, []);
-
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const onClick = (e: MouseEvent) => {
-      // drive pulse from click position
-      const x = `${e.clientX}px`;
-      const y = `${e.clientY}px`;
-      document.documentElement.style.setProperty("--mouse-x", x);
-      document.documentElement.style.setProperty("--mouse-y", y);
-
-      triggerRadialBurst(e.clientX, e.clientY);
-    };
-    el.addEventListener("click", onClick as any);
-    return () => {
-      el.removeEventListener("click", onClick as any);
-    };
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, width, height);
-      }
-    };
-    resize();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
-
-  const resolveSolarizedAccentPalette = (): string[] => {
-    const root = document.documentElement;
-    const computed = getComputedStyle(root);
-    const vars = ["--red", "--orange", "--yellow", "--green", "--blue", "--violet"];
-    return vars.map((v) => computed.getPropertyValue(v).trim()).filter(Boolean);
-  };
-
-  const triggerRadialBurst = (clientX: number, clientY: number) => {
+  const triggerRadialBurst = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -84,7 +28,10 @@ export default function Home() {
     const width = window.innerWidth;
     const height = window.innerHeight;
 
-    const palette = resolveSolarizedAccentPalette();
+    const root = document.documentElement;
+    const computed = getComputedStyle(root);
+    const vars = ["--red", "--orange", "--yellow", "--green", "--blue", "--violet"] as const;
+    const palette = vars.map((v) => computed.getPropertyValue(v).trim()).filter(Boolean);
     const clickId = (clickIdRef.current = clickIdRef.current + 1);
 
     const origin = { x: clientX, y: clientY };
@@ -131,7 +78,62 @@ export default function Home() {
     };
 
     requestAnimationFrame(draw);
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleMove = (e: MouseEvent) => {
+      const x = `${e.clientX}px`;
+      const y = `${e.clientY}px`;
+      document.documentElement.style.setProperty("--mouse-x", x);
+      document.documentElement.style.setProperty("--mouse-y", y);
+    };
+    window.addEventListener("mousemove", handleMove, { passive: true });
+    return () => window.removeEventListener("mousemove", handleMove as EventListener);
+  }, []);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const onClick = () => {
+      // start effect from a random viewport position
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const randomX = Math.random() * width;
+      const randomY = Math.random() * height;
+      const x = `${randomX}px`;
+      const y = `${randomY}px`;
+      document.documentElement.style.setProperty("--mouse-x", x);
+      document.documentElement.style.setProperty("--mouse-y", y);
+
+      triggerRadialBurst(randomX, randomY);
+    };
+    el.addEventListener("click", onClick as EventListener);
+    return () => {
+      el.removeEventListener("click", onClick as EventListener);
+    };
+  }, [triggerRadialBurst]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+      }
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, []);
+
+  
 
   return (
     <main className={styles.container} ref={containerRef}>
@@ -152,7 +154,10 @@ export default function Home() {
             key={rowIndex}
             className={`${styles.row} ${effectClass}`}
             aria-label={word}
-            style={{ ['--accent' as any]: highlightPalette[rowIndex], ['--spot-accent' as any]: highlightPalette[rowIndex] }}
+            style={{
+              ['--accent']: highlightPalette[rowIndex],
+              ['--spot-accent']: highlightPalette[rowIndex],
+            } as CSSProperties}
           >
             {word.split("").map((char, charIndex) => {
               const isHighlight = charIndex === highlightIndex;
