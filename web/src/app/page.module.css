@@ -4,7 +4,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
 }
 
 .row {
@@ -28,4 +28,30 @@
   .letter {
     color: #707070;
   }
+}
+
+.socials {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.socialLink {
+  color: #9a9a9a;
+  transition: color 0.2s ease;
+}
+
+.socialLink:hover {
+  color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .socialLink {
+    color: #8a8a8a;
+  }
+}
+
+.socialIcon {
+  width: 24px;
+  height: 24px;
 }
