@@ -10,6 +10,9 @@ const majorMono = Major_Mono_Display({
 export const metadata: Metadata = {
   title: "jonnii",
   description: "jonnii.com",
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
