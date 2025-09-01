@@ -95,11 +95,14 @@ export default function Home() {
     const el = containerRef.current;
     if (!el) return;
     const onClick = () => {
-      // start effect from a random viewport position
+      // start effect from a random position strictly within the visual viewport
       const width = window.innerWidth;
       const height = window.innerHeight;
-      const randomX = Math.random() * width;
-      const randomY = Math.random() * height;
+      const padding = 24;
+      const usableW = Math.max(0, width - padding * 2);
+      const usableH = Math.max(0, height - padding * 2);
+      const randomX = Math.floor((usableW ? padding + Math.random() * usableW : width / 2));
+      const randomY = Math.floor((usableH ? padding + Math.random() * usableH : height / 2));
       const x = `${randomX}px`;
       const y = `${randomY}px`;
       document.documentElement.style.setProperty("--mouse-x", x);
