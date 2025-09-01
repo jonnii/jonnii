@@ -6,12 +6,12 @@ export default function Home() {
   const word = "jonnii";
   const rows = Array.from({ length: 6 }, (_, index) => index);
   const highlightPalette = [
-    "#ff4d4f",
-    "#fa8c16",
-    "#fadb14",
-    "#52c41a",
-    "#40a9ff",
-    "#9254de",
+    "var(--red)",
+    "var(--orange)",
+    "var(--yellow)",
+    "var(--green)",
+    "var(--blue)",
+    "var(--violet)",
   ];
 
   return (

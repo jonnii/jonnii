@@ -17,7 +17,7 @@
 }
 
 .letter {
-  color: #6f6f6f;
+  color: var(--muted);
 }
 
 .highlight {
@@ -26,7 +26,7 @@
 
 @media (prefers-color-scheme: dark) {
   .letter {
-    color: #707070;
+    color: var(--muted);
   }
 }
 
@@ -37,17 +37,17 @@
 }
 
 .socialLink {
-  color: #9a9a9a;
+  color: var(--muted-strong);
   transition: color 0.2s ease;
 }
 
 .socialLink:hover {
-  color: var(--foreground);
+  color: var(--link-hover);
 }
 
 @media (prefers-color-scheme: dark) {
   .socialLink {
-    color: #8a8a8a;
+    color: var(--muted-strong);
   }
 }
 

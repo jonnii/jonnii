@@ -1,12 +1,42 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Solarized base (Light default) */
+  --base03: #002b36;
+  --base02: #073642;
+  --base01: #586e75;
+  --base00: #657b83;
+  --base0: #839496;
+  --base1: #93a1a1;
+  --base2: #eee8d5;
+  --base3: #fdf6e3;
+
+  /* Solarized accents */
+  --yellow: #b58900;
+  --orange: #cb4b16;
+  --red: #dc322f;
+  --magenta: #d33682;
+  --violet: #6c71c4;
+  --blue: #268bd2;
+  --cyan: #2aa198;
+  --green: #859900;
+
+  /* Theme tokens (Light default) */
+  --background: var(--base3);
+  --foreground: var(--base00);
+  --muted: var(--base1);
+  --muted-strong: var(--base01);
+  --link: var(--blue);
+  --link-hover: var(--violet);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Switch to Solarized Dark */
+    --background: var(--base03);
+    --foreground: var(--base0);
+    --muted: var(--base01);
+    --muted-strong: var(--base1);
+    --link: var(--cyan);
+    --link-hover: var(--blue);
   }
 }
 
@@ -31,7 +61,7 @@ body {
 }
 
 a {
-  color: inherit;
+  color: var(--link);
   text-decoration: none;
 }
 
