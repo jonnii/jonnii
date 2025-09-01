@@ -16,12 +16,34 @@
   letter-spacing: -0.02em;
 }
 
+@keyframes rowWave {
+  0% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+  60% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
 .letter {
   color: var(--muted);
+  transition: color 0.25s ease, transform 0.3s ease;
 }
 
 .highlight {
   color: var(--foreground);
+}
+
+.row:hover .letter {
+  animation: rowWave 600ms ease-out both;
+  animation-delay: calc(var(--i) * 40ms);
+  color: var(--accent);
 }
 
 @media (prefers-color-scheme: dark) {

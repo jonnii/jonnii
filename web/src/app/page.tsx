@@ -17,9 +17,14 @@ export default function Home() {
   return (
     <main className={styles.container}>
       {rows.map((rowIndex) => {
-        const highlightIndex = rowIndex; // row index + 1 (1-based) -> same as 0-based index
+        const highlightIndex = rowIndex;
         return (
-          <div key={rowIndex} className={styles.row} aria-label={word}>
+          <div
+            key={rowIndex}
+            className={styles.row}
+            aria-label={word}
+            style={{ ['--accent' as any]: highlightPalette[rowIndex] }}
+          >
             {word.split("").map((char, charIndex) => {
               const isHighlight = charIndex === highlightIndex;
               return (
