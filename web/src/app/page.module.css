@@ -17,9 +17,15 @@
 }
 
 .letter {
-  color: var(--foreground);
+  color: #6f6f6f;
 }
 
 .highlight {
   color: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  .letter {
+    color: #707070;
+  }
 }
