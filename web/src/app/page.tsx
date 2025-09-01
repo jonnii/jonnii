@@ -95,14 +95,18 @@ export default function Home() {
     const el = containerRef.current;
     if (!el) return;
     const onClick = () => {
-      // start effect from a random position strictly within the visual viewport
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      // start effect from a random position strictly within the canvas bounds
+      const target = canvasRef.current ?? containerRef.current ?? document.documentElement;
+      const rect = target.getBoundingClientRect();
       const padding = 24;
-      const usableW = Math.max(0, width - padding * 2);
-      const usableH = Math.max(0, height - padding * 2);
-      const randomX = Math.floor((usableW ? padding + Math.random() * usableW : width / 2));
-      const randomY = Math.floor((usableH ? padding + Math.random() * usableH : height / 2));
+      const minX = Math.floor(rect.left + padding);
+      const maxX = Math.floor(rect.right - padding);
+      const minY = Math.floor(rect.top + padding);
+      const maxY = Math.floor(rect.bottom - padding);
+      const rangeX = Math.max(0, maxX - minX);
+      const rangeY = Math.max(0, maxY - minY);
+      const randomX = rangeX ? minX + Math.floor(Math.random() * rangeX) : Math.floor((rect.left + rect.right) / 2);
+      const randomY = rangeY ? minY + Math.floor(Math.random() * rangeY) : Math.floor((rect.top + rect.bottom) / 2);
       const x = `${randomX}px`;
       const y = `${randomY}px`;
       document.documentElement.style.setProperty("--mouse-x", x);
