@@ -5,7 +5,62 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
+  position: relative;
+  isolation: isolate;
 }
+
+.bgCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.container::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  /* subtle base dot grid using foreground tone */
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--foreground) 16%, transparent) 1.2px,
+    transparent 1.3px
+  );
+  background-size: 16px 16px;
+  background-position: 0 0;
+  opacity: 0.8;
+}
+
+.container::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  /* accent dot grid, masked to a soft circle around the cursor */
+  background-image: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--spot-accent, var(--blue)) 38%, transparent) 1.3px,
+    transparent 1.5px
+  );
+  background-size: 16px 16px;
+  background-position: 0 0;
+  opacity: 0.7;
+  -webkit-mask-image: radial-gradient(
+    320px 320px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 0, 0, 0.9),
+    transparent 78%
+  );
+  mask-image: radial-gradient(
+    320px 320px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(0, 0, 0, 0.9),
+    transparent 78%
+  );
+}
+
+/* removed pulse animation */
 
 .row {
   display: flex;
@@ -31,6 +86,66 @@
   }
 }
 
+@keyframes tilt {
+  0% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-6deg);
+  }
+  60% {
+    transform: rotate(3deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes jelly {
+  0% {
+    transform: scale(1, 1);
+  }
+  40% {
+    transform: scale(1.15, 0.9);
+  }
+  60% {
+    transform: scale(0.98, 1.02);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+@keyframes skew {
+  0% {
+    transform: skewX(0deg);
+  }
+  40% {
+    transform: skewX(-12deg);
+  }
+  60% {
+    transform: skewX(6deg);
+  }
+  100% {
+    transform: skewX(0deg);
+  }
+}
+
+@keyframes blurIn {
+  0% {
+    filter: blur(2px) brightness(1.05);
+    transform: translateY(0);
+  }
+  60% {
+    filter: blur(0.5px) brightness(1.08);
+    transform: translateY(-4px);
+  }
+  100% {
+    filter: blur(0) brightness(1);
+    transform: translateY(0);
+  }
+}
+
 .letter {
   color: var(--muted);
   transition: color 0.25s ease, transform 0.3s ease;
@@ -40,11 +155,84 @@
   color: var(--foreground);
 }
 
-.row:hover .letter {
+/* Effect: Wave */
+.effectWave:hover .letter {
   animation: rowWave 600ms ease-out both;
-  animation-delay: calc(var(--i) * 40ms);
   color: var(--accent);
 }
+.effectWave:hover .letter:nth-child(1) { animation-delay: 0ms; }
+.effectWave:hover .letter:nth-child(2) { animation-delay: 40ms; }
+.effectWave:hover .letter:nth-child(3) { animation-delay: 80ms; }
+.effectWave:hover .letter:nth-child(4) { animation-delay: 120ms; }
+.effectWave:hover .letter:nth-child(5) { animation-delay: 160ms; }
+.effectWave:hover .letter:nth-child(6) { animation-delay: 200ms; }
+
+/* Effect: Tilt */
+.effectTilt:hover .letter {
+  animation: tilt 500ms ease-out both;
+  color: var(--accent);
+}
+.effectTilt:hover .letter:nth-child(1) { animation-delay: 0ms; }
+.effectTilt:hover .letter:nth-child(2) { animation-delay: 40ms; }
+.effectTilt:hover .letter:nth-child(3) { animation-delay: 80ms; }
+.effectTilt:hover .letter:nth-child(4) { animation-delay: 120ms; }
+.effectTilt:hover .letter:nth-child(5) { animation-delay: 160ms; }
+.effectTilt:hover .letter:nth-child(6) { animation-delay: 200ms; }
+
+/* Effect: Underline sweep */
+.effectUnderline .letter {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-size: 0% 2px;
+  background-position: 0 100%;
+  transition: color 0.25s ease, background-size 250ms ease;
+}
+.effectUnderline:hover .letter {
+  color: var(--accent);
+  background-size: 100% 2px;
+}
+.effectUnderline:hover .letter:nth-child(1) { transition-delay: 0ms; }
+.effectUnderline:hover .letter:nth-child(2) { transition-delay: 40ms; }
+.effectUnderline:hover .letter:nth-child(3) { transition-delay: 80ms; }
+.effectUnderline:hover .letter:nth-child(4) { transition-delay: 120ms; }
+.effectUnderline:hover .letter:nth-child(5) { transition-delay: 160ms; }
+.effectUnderline:hover .letter:nth-child(6) { transition-delay: 200ms; }
+
+/* Effect: Jelly */
+.effectJelly:hover .letter {
+  animation: jelly 650ms ease-out both;
+  color: var(--accent);
+}
+.effectJelly:hover .letter:nth-child(1) { animation-delay: 0ms; }
+.effectJelly:hover .letter:nth-child(2) { animation-delay: 40ms; }
+.effectJelly:hover .letter:nth-child(3) { animation-delay: 80ms; }
+.effectJelly:hover .letter:nth-child(4) { animation-delay: 120ms; }
+.effectJelly:hover .letter:nth-child(5) { animation-delay: 160ms; }
+.effectJelly:hover .letter:nth-child(6) { animation-delay: 200ms; }
+
+/* Effect: Skew */
+.effectSkew:hover .letter {
+  animation: skew 520ms ease-out both;
+  color: var(--accent);
+}
+.effectSkew:hover .letter:nth-child(1) { animation-delay: 0ms; }
+.effectSkew:hover .letter:nth-child(2) { animation-delay: 40ms; }
+.effectSkew:hover .letter:nth-child(3) { animation-delay: 80ms; }
+.effectSkew:hover .letter:nth-child(4) { animation-delay: 120ms; }
+.effectSkew:hover .letter:nth-child(5) { animation-delay: 160ms; }
+.effectSkew:hover .letter:nth-child(6) { animation-delay: 200ms; }
+
+/* Effect: Blur Glow */
+.effectBlur:hover .letter {
+  animation: blurIn 520ms ease-out both;
+  color: var(--accent);
+}
+.effectBlur:hover .letter:nth-child(1) { animation-delay: 0ms; }
+.effectBlur:hover .letter:nth-child(2) { animation-delay: 40ms; }
+.effectBlur:hover .letter:nth-child(3) { animation-delay: 80ms; }
+.effectBlur:hover .letter:nth-child(4) { animation-delay: 120ms; }
+.effectBlur:hover .letter:nth-child(5) { animation-delay: 160ms; }
+.effectBlur:hover .letter:nth-child(6) { animation-delay: 200ms; }
 
 @media (prefers-color-scheme: dark) {
   .letter {
