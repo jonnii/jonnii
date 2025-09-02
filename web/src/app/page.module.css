@@ -7,6 +7,9 @@
   gap: 12px;
   position: relative;
   isolation: isolate;
+  /* Gradient tuning variables */
+  --row-foreground-min: 10%;
+  --row-foreground-max: 36%;
 }
 
 .bgCanvas {
@@ -155,7 +158,11 @@
      - In dark mode: lighter as rows go down */
   color: color-mix(in srgb,
     var(--foreground)
-    calc( clamp(0%, (1 - (var(--row-index) / max(1, var(--row-count) - 1))) * 36%, 36%) ),
+    calc(clamp(
+      var(--row-foreground-min, 10%),
+      (1 - (var(--row-index) / max(1, var(--row-count) - 1))) * var(--row-foreground-max, 36%),
+      var(--row-foreground-max, 36%)
+    )),
     var(--background)
   );
   transition: color 0.25s ease, transform 0.3s ease;
@@ -248,7 +255,11 @@
   .letter {
     color: color-mix(in srgb,
       var(--foreground)
-      calc( clamp(0%, (1 - (var(--row-index) / max(1, var(--row-count) - 1))) * 36%, 36%) ),
+      calc(clamp(
+        var(--row-foreground-min, 10%),
+        (1 - (var(--row-index) / max(1, var(--row-count) - 1))) * var(--row-foreground-max, 36%),
+        var(--row-foreground-max, 36%)
+      )),
       var(--background)
     );
   }
