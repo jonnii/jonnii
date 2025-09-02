@@ -164,6 +164,8 @@ export default function Home() {
             style={{
               ['--accent']: highlightPalette[rowIndex],
               ['--spot-accent']: highlightPalette[rowIndex],
+              ['--row-index']: rowIndex,
+              ['--row-count']: rows.length,
             } as CSSProperties}
           >
             {word.split("").map((char, charIndex) => {

@@ -64,11 +64,14 @@
 
 .row {
   display: flex;
-  gap: 2px;
+  gap: 8px;
   font-size: clamp(28px, 8vw, 96px);
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.02em;
+  /* expose row index/count for gradients of tone */
+  --row-index: 0;
+  --row-count: 1;
 }
 
 @keyframes rowWave {
@@ -147,7 +150,14 @@
 }
 
 .letter {
-  color: var(--muted);
+  /* Base letter tone varies by row:
+     - In light mode: deeper (darker) as rows go down
+     - In dark mode: lighter as rows go down */
+  color: color-mix(in srgb,
+    var(--foreground)
+    calc( clamp(0%, (var(--row-index) / max(1, var(--row-count) - 1)) * 36%, 36%) ),
+    var(--background)
+  );
   transition: color 0.25s ease, transform 0.3s ease;
 }
 
@@ -236,7 +246,11 @@
 
 @media (prefers-color-scheme: dark) {
   .letter {
-    color: var(--muted);
+    color: color-mix(in srgb,
+      var(--foreground)
+      calc( clamp(0%, (1 - (var(--row-index) / max(1, var(--row-count) - 1))) * 36%, 36%) ),
+      var(--background)
+    );
   }
 }
 
