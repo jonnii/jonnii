@@ -155,7 +155,7 @@
      - In dark mode: lighter as rows go down */
   color: color-mix(in srgb,
     var(--foreground)
-    calc( clamp(0%, (var(--row-index) / max(1, var(--row-count) - 1)) * 36%, 36%) ),
+    calc( clamp(0%, (1 - (var(--row-index) / max(1, var(--row-count) - 1))) * 36%, 36%) ),
     var(--background)
   );
   transition: color 0.25s ease, transform 0.3s ease;
