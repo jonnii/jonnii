@@ -3,6 +3,7 @@ import { Major_Mono_Display } from "next/font/google";
 import "./globals.css";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
+import Umami from "../components/Umami";
 
 config.autoAddCss = false;
 
@@ -27,6 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={majorMono.className}>
+        <Umami />
         {children}
       </body>
     </html>
