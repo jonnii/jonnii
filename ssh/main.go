@@ -116,13 +116,13 @@ func easterEggMiddleware() wish.Middleware {
 
 			// Info
 			lines := []string{
-				textStyle.Render("I'm Jon, a software engineer who loves building things."),
+				textStyle.Render("I'm jonnii, a software engineer who loves building things."),
 				"",
 				textStyle.Render("Find me at:"),
 				"  " + linkStyle.Render("https://jonnii.com"),
 				"  " + linkStyle.Render("https://github.com/jonnii"),
 				"",
-				dimStyle.Render("Thanks for SSH-ing in! Press Ctrl+C to exit."),
+				dimStyle.Render("Press Ctrl+C to exit."),
 			}
 
 			for _, line := range lines {
@@ -133,8 +133,16 @@ func easterEggMiddleware() wish.Middleware {
 
 			fmt.Fprintln(sess)
 
-			// Keep connection open until user disconnects
-			<-sess.Context().Done()
+			// Wait for Ctrl+C (0x03) or connection close
+			buf := make([]byte, 1)
+			for {
+				n, err := sess.Read(buf)
+				if err != nil || (n > 0 && buf[0] == 0x03) {
+					break
+				}
+			}
+
+			fmt.Fprintln(sess, dimStyle.Render("\nGoodbye!"))
 		}
 	}
 }
