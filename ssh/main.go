@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"net"
@@ -10,11 +12,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/logging"
 )
+
+//go:embed rr.gif
+var rickRollGif []byte
 
 const (
 	defaultHost = "0.0.0.0"
@@ -22,6 +26,12 @@ const (
 )
 
 func main() {
+	// If --demo flag, just play animation locally
+	if len(os.Args) > 1 && os.Args[1] == "--demo" {
+		playDemo()
+		return
+	}
+
 	host := defaultHost
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -32,7 +42,7 @@ func main() {
 		wish.WithAddress(net.JoinHostPort(host, port)),
 		wish.WithHostKeyPath(".ssh/id_ed25519"),
 		wish.WithMiddleware(
-			easterEggMiddleware(),
+			rickRollMiddleware(),
 			logging.Middleware(),
 		),
 	)
@@ -62,94 +72,95 @@ func main() {
 	}
 }
 
-func easterEggMiddleware() wish.Middleware {
+func rickRollMiddleware() wish.Middleware {
+	// Pre-extract frames at startup
+	converter := NewGifASCII(80, 0)
+	frames, err := converter.ExtractFrames(bytes.NewReader(rickRollGif))
+	if err != nil {
+		fmt.Printf("Warning: could not extract gif frames: %v\n", err)
+		frames = []string{"[Could not load animation]"}
+	}
+
 	return func(next ssh.Handler) ssh.Handler {
 		return func(sess ssh.Session) {
-			renderer := lipgloss.NewRenderer(sess)
+			// Clear screen and hide cursor
+			fmt.Fprint(sess, "\x1b[?25l") // Hide cursor
+			fmt.Fprint(sess, ClearScreen())
 
-			// Styles
-			titleStyle := renderer.NewStyle().
-				Bold(true).
-				Foreground(lipgloss.Color("#FF6B6B")).
-				MarginBottom(1)
+			// Channel to signal stop
+			stopChan := make(chan struct{})
 
-			subtitleStyle := renderer.NewStyle().
-				Foreground(lipgloss.Color("#4ECDC4")).
-				Italic(true)
+			// Read input in background to detect Ctrl+C
+			go func() {
+				buf := make([]byte, 1)
+				for {
+					n, err := sess.Read(buf)
+					if err != nil || (n > 0 && buf[0] == 0x03) {
+						close(stopChan)
+						return
+					}
+				}
+			}()
 
-			borderStyle := renderer.NewStyle().
-				Foreground(lipgloss.Color("#95E1D3"))
-
-			linkStyle := renderer.NewStyle().
-				Foreground(lipgloss.Color("#F38181")).
-				Underline(true)
-
-			textStyle := renderer.NewStyle().
-				Foreground(lipgloss.Color("#FAFAFA"))
-
-			dimStyle := renderer.NewStyle().
-				Foreground(lipgloss.Color("#666666"))
-
-			// ASCII Art
-			art := `
-    ██╗ ██████╗ ███╗   ██╗███╗   ██╗██╗██╗
-    ██║██╔═══██╗████╗  ██║████╗  ██║██║██║
-    ██║██║   ██║██╔██╗ ██║██╔██╗ ██║██║██║
-██  ██║██║   ██║██║╚██╗██║██║╚██╗██║██║██║
-╚█████╔╝╚██████╔╝██║ ╚████║██║ ╚████║██║██║
- ╚════╝  ╚═════╝ ╚═╝  ╚═══╝╚═╝  ╚═══╝╚═╝╚═╝
-`
-			// Print with typing effect
-			typewrite(sess, borderStyle.Render(art), 2*time.Millisecond)
-
-			fmt.Fprintln(sess)
-
-			title := titleStyle.Render("Welcome, curious traveler!")
-			typewrite(sess, title, 20*time.Millisecond)
-			fmt.Fprintln(sess)
-			fmt.Fprintln(sess)
-
-			subtitle := subtitleStyle.Render("You found the secret SSH entrance...")
-			typewrite(sess, subtitle, 15*time.Millisecond)
-			fmt.Fprintln(sess)
-			fmt.Fprintln(sess)
-
-			// Info
-			lines := []string{
-				textStyle.Render("I'm jonnii, a software engineer who loves building things."),
-				"",
-				textStyle.Render("Find me at:"),
-				"  " + linkStyle.Render("https://jonnii.com"),
-				"  " + linkStyle.Render("https://github.com/jonnii"),
-				"",
-				dimStyle.Render("Press Ctrl+C to exit."),
-			}
-
-			for _, line := range lines {
-				typewrite(sess, line, 10*time.Millisecond)
-				fmt.Fprintln(sess)
-				time.Sleep(50 * time.Millisecond)
-			}
-
-			fmt.Fprintln(sess)
-
-			// Wait for Ctrl+C (0x03) or connection close
-			buf := make([]byte, 1)
+			// Play animation loop
+		animationLoop:
 			for {
-				n, err := sess.Read(buf)
-				if err != nil || (n > 0 && buf[0] == 0x03) {
-					break
+				for _, frame := range frames {
+					select {
+					case <-stopChan:
+						break animationLoop
+					case <-sess.Context().Done():
+						break animationLoop
+					default:
+						fmt.Fprint(sess, MoveCursorHome())
+						fmt.Fprint(sess, frame)
+						time.Sleep(time.Duration(converter.FrameDelay) * time.Millisecond)
+					}
 				}
 			}
 
-			fmt.Fprintln(sess, dimStyle.Render("\nGoodbye!"))
+			// Show cursor and clear screen before exit
+			fmt.Fprint(sess, "\x1b[?25h") // Show cursor
+			fmt.Fprint(sess, ClearScreen())
+			fmt.Fprintln(sess, "Never gonna give you up! Goodbye!")
 		}
 	}
 }
 
-func typewrite(sess ssh.Session, text string, delay time.Duration) {
-	for _, char := range text {
-		fmt.Fprint(sess, string(char))
-		time.Sleep(delay)
+func playDemo() {
+	converter := NewGifASCII(80, 0)
+	frames, err := converter.ExtractFrames(bytes.NewReader(rickRollGif))
+	if err != nil {
+		fmt.Printf("Error: could not extract gif frames: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Handle Ctrl+C
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+
+	// Hide cursor and clear screen
+	fmt.Print("\x1b[?25l")
+	fmt.Print(ClearScreen())
+
+	// Restore cursor on exit
+	defer func() {
+		fmt.Print("\x1b[?25h")
+		fmt.Print(ClearScreen())
+		fmt.Println("Never gonna give you up! Goodbye!")
+	}()
+
+	// Play animation loop
+	for {
+		for _, frame := range frames {
+			select {
+			case <-sigChan:
+				return
+			default:
+				fmt.Print(MoveCursorHome())
+				fmt.Print(frame)
+				time.Sleep(time.Duration(converter.FrameDelay) * time.Millisecond)
+			}
+		}
 	}
 }
