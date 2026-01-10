@@ -98,9 +98,16 @@ func main() {
 	}
 	fmt.Printf("Loaded %d animation frames\n", len(frames))
 
+	// Load host key directly to avoid wish's chmod call on Railway volumes
+	hostKeyPEM, err := os.ReadFile(cfg.HostKeyPath)
+	if err != nil {
+		fmt.Printf("Could not read host key %s: %v\n", cfg.HostKeyPath, err)
+		os.Exit(1)
+	}
+
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(cfg.Host, cfg.Port)),
-		wish.WithHostKeyPath(cfg.HostKeyPath),
+		wish.WithHostKeyPEM(hostKeyPEM),
 		wish.WithIdleTimeout(5*time.Minute),
 		wish.WithMaxTimeout(10*time.Minute),
 		wish.WithMiddleware(

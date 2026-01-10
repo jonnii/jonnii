@@ -23,24 +23,12 @@ WORKDIR /app
 # Install openssh for key generation
 RUN apk add --no-cache openssh-keygen
 
-# Create non-root user
-RUN adduser -D -u 1000 appuser
-
-# NOTE: For persistent host keys, mount a volume to /app/.ssh in Railway
-# Do not create .ssh directory here - let the volume mount handle it
-
 # Copy the binary
 COPY --from=builder /app/jonnii-ssh .
 
 # Copy entrypoint script
 COPY entrypoint.sh .
 RUN chmod +x entrypoint.sh
-
-# Change ownership to non-root user
-RUN chown -R appuser:appuser /app
-
-# Switch to non-root user
-USER appuser
 
 # Document the SSH port
 EXPOSE 22
