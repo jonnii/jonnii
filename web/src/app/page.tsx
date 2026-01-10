@@ -2,7 +2,7 @@
 import styles from "./page.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGithub, faLinkedin, faXTwitter } from "@fortawesome/free-brands-svg-icons";
-import { useEffect, useRef, useCallback, type CSSProperties } from "react";
+import { useEffect, useRef, useCallback, useState, type CSSProperties } from "react";
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -10,6 +10,7 @@ export default function Home() {
   const clickIdRef = useRef<number>(0);
   const word = "jonnii";
   const rows = Array.from({ length: 6 }, (_, index) => index);
+  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
   const highlightPalette = [
     "var(--red)",
     "var(--violet)",
@@ -161,6 +162,8 @@ export default function Home() {
             key={rowIndex}
             className={`${styles.row} ${effectClass}`}
             aria-label={word}
+            onMouseEnter={() => setHoveredRow(rowIndex)}
+            onMouseLeave={() => setHoveredRow(null)}
             style={{
               ['--accent']: highlightPalette[rowIndex],
               ['--spot-accent']: highlightPalette[rowIndex],
@@ -183,7 +186,24 @@ export default function Home() {
           </div>
         );
       })}
-      <nav className={styles.socials} aria-label="social links">
+      <div className={styles.footer}>
+        <div
+          className={styles.terminal}
+          onClick={() => navigator.clipboard.writeText("ssh -p 56170 why.jonnii.com")}
+          title="Click to copy"
+        >
+          <span className={styles.terminalPrompt}>$</span>
+          <span className={styles.terminalCommand}>
+            <span
+              className={styles.terminalKeyword}
+              style={hoveredRow !== null ? { color: highlightPalette[hoveredRow] } : undefined}
+            >
+              ssh
+            </span>{" "}
+            -p 56170 why.jonnii.com
+          </span>
+        </div>
+        <nav className={styles.socials} aria-label="social links">
         <a
           className={styles.socialLink}
           href="https://www.linkedin.com/in/jonathan-goldman-%F0%9F%A7%8D-0661781/"
@@ -210,8 +230,9 @@ export default function Home() {
           aria-label="X (Twitter)"
         >
           <FontAwesomeIcon className={styles.socialIcon} icon={faXTwitter} />
-        </a>
-      </nav>
+          </a>
+        </nav>
+      </div>
     </main>
   );
 }
