@@ -113,26 +113,34 @@ func (g *GifASCII) frameToASCII(img *image.Paletted, frameIndex int) string {
 	// Reusable buffer for ANSI escape sequence
 	ansiBuf := make([]byte, 0, 24)
 
+	var lastR, lastG, lastB uint8 = 255, 255, 255 // Impossible starting value to force first color
+	colorSet := false
+
 	for y := 0; y < g.Height; y++ {
 		for x := 0; x < g.Width; x++ {
 			r, gr, b, _ := resized.At(x, y).RGBA()
 			// Convert from 16-bit to 8-bit color
 			r8, g8, b8 := uint8(r>>8), uint8(gr>>8), uint8(b>>8)
 
-			// Build ANSI escape sequence efficiently
-			ansiBuf = ansiBuf[:0]
-			ansiBuf = append(ansiBuf, "\x1b[38;2;"...)
-			ansiBuf = strconv.AppendUint(ansiBuf, uint64(r8), 10)
-			ansiBuf = append(ansiBuf, ';')
-			ansiBuf = strconv.AppendUint(ansiBuf, uint64(g8), 10)
-			ansiBuf = append(ansiBuf, ';')
-			ansiBuf = strconv.AppendUint(ansiBuf, uint64(b8), 10)
-			ansiBuf = append(ansiBuf, 'm')
+			// Only emit color code if color changed
+			if !colorSet || r8 != lastR || g8 != lastG || b8 != lastB {
+				ansiBuf = ansiBuf[:0]
+				ansiBuf = append(ansiBuf, "\x1b[38;2;"...)
+				ansiBuf = strconv.AppendUint(ansiBuf, uint64(r8), 10)
+				ansiBuf = append(ansiBuf, ';')
+				ansiBuf = strconv.AppendUint(ansiBuf, uint64(g8), 10)
+				ansiBuf = append(ansiBuf, ';')
+				ansiBuf = strconv.AppendUint(ansiBuf, uint64(b8), 10)
+				ansiBuf = append(ansiBuf, 'm')
+				buf.Write(ansiBuf)
+				lastR, lastG, lastB = r8, g8, b8
+				colorSet = true
+			}
 
-			buf.Write(ansiBuf)
 			buf.WriteRune(g.Chars[rng.Intn(len(g.Chars))])
 		}
 		buf.WriteString("\x1b[0m\n")
+		colorSet = false // Reset after newline since we emit reset
 	}
 
 	return buf.String()
