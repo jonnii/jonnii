@@ -12,6 +12,14 @@
   --row-foreground-max: 36%;
 }
 
+/* Canvas for animated dots */
+.dotCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
 /* Base ring styles */
 .ring {
   position: fixed;
@@ -38,7 +46,7 @@
 }
 
 .effectBurst {
-  animation: burst 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: burst 3.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Effect: Ripple - multiple staggered rings */
