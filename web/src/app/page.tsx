@@ -25,19 +25,34 @@ const EFFECT_CLASSES = [
 ];
 const BURST_COLORS = ["--red", "--orange", "--yellow", "--green", "--blue", "--violet"];
 
-interface BurstRing {
-  id: number;
+// Ring effect configurations
+type EffectType = "burst" | "ripple" | "pulse" | "shockwave" | "sonar";
+
+const RING_EFFECTS: Record<EffectType, { ringCount: number; duration: number; className: string }> = {
+  burst: { ringCount: 1, duration: 2000, className: styles.effectBurst },
+  ripple: { ringCount: 3, duration: 3000, className: styles.effectRipple },
+  pulse: { ringCount: 2, duration: 2500, className: styles.effectPulse },
+  shockwave: { ringCount: 1, duration: 1200, className: styles.effectShockwave },
+  sonar: { ringCount: 2, duration: 3200, className: styles.effectSonar },
+};
+
+const EFFECT_TYPES = Object.keys(RING_EFFECTS) as EffectType[];
+
+interface Ring {
+  id: string;
   x: number;
   y: number;
   scale: number;
   color: string;
+  effect: EffectType;
+  index: number;
 }
 
 export default function Home() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const burstIdRef = useRef(0);
+  const effectIdRef = useRef(0);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
-  const [bursts, setBursts] = useState<BurstRing[]>([]);
+  const [rings, setRings] = useState<Ring[]>([]);
 
   // Cache computed colors on mount
   const colorsRef = useRef<string[]>([]);
@@ -59,10 +74,11 @@ export default function Home() {
     };
   }, []);
 
-  // Trigger CSS-based radial burst at specific position or random
-  const triggerBurst = useCallback((position?: { x: number; y: number }) => {
+  // Trigger random effect at specific position or random
+  const triggerEffect = useCallback((position?: { x: number; y: number }) => {
     const { x, y } = position ?? getRandomPosition();
-    // Calculate scale needed to cover screen from this point (base size is 100px)
+
+    // Calculate scale needed to cover screen from this point
     const maxDist = Math.max(
       Math.hypot(x, y),
       Math.hypot(window.innerWidth - x, y),
@@ -70,27 +86,36 @@ export default function Home() {
       Math.hypot(window.innerWidth - x, window.innerHeight - y)
     );
     const scale = (maxDist * 2) / 100;
-    const colors = colorsRef.current;
-    const color = colors.length > 0 ? colors[burstIdRef.current % colors.length] : "#268bd2";
 
-    const burst: BurstRing = {
-      id: burstIdRef.current++,
+    // Random effect and color
+    const effect = EFFECT_TYPES[Math.floor(Math.random() * EFFECT_TYPES.length)];
+    const config = RING_EFFECTS[effect];
+    const colors = colorsRef.current;
+    const baseColorIndex = effectIdRef.current % colors.length;
+
+    // Create rings for this effect
+    const effectId = effectIdRef.current++;
+    const newRings: Ring[] = Array.from({ length: config.ringCount }, (_, i) => ({
+      id: `${effectId}-${i}`,
       x,
       y,
       scale,
-      color,
-    };
+      color: colors.length > 0 ? colors[(baseColorIndex + i) % colors.length] : "#268bd2",
+      effect,
+      index: i,
+    }));
 
     // Update mouse position for dot grid spotlight
     document.documentElement.style.setProperty("--mouse-x", `${x}px`);
     document.documentElement.style.setProperty("--mouse-y", `${y}px`);
 
-    setBursts((prev) => [...prev, burst]);
+    setRings((prev) => [...prev, ...newRings]);
 
     // Remove after animation completes
     setTimeout(() => {
-      setBursts((prev) => prev.filter((b) => b.id !== burst.id));
-    }, 1800);
+      const ids = newRings.map((r) => r.id);
+      setRings((prev) => prev.filter((r) => !ids.includes(r.id)));
+    }, config.duration);
   }, [getRandomPosition]);
 
   // Mouse/touch move handler for dot grid spotlight
@@ -110,35 +135,36 @@ export default function Home() {
     };
   }, []);
 
-  // Click handler for manual burst at click position
+  // Click handler for manual effect at click position
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const handleClick = (e: MouseEvent) => {
-      triggerBurst({ x: e.clientX, y: e.clientY });
+      triggerEffect({ x: e.clientX, y: e.clientY });
     };
     el.addEventListener("click", handleClick);
     return () => el.removeEventListener("click", handleClick);
-  }, [triggerBurst]);
+  }, [triggerEffect]);
 
-  // Auto-trigger burst every 5 seconds at random position
+  // Auto-trigger effect every 10 seconds at random position
   useEffect(() => {
-    const interval = setInterval(() => triggerBurst(), 5000);
+    const interval = setInterval(() => triggerEffect(), 10000);
     return () => clearInterval(interval);
-  }, [triggerBurst]);
+  }, [triggerEffect]);
 
   return (
     <main className={styles.container} ref={containerRef}>
-      {/* CSS-animated burst rings */}
-      {bursts.map((burst) => (
+      {/* CSS-animated effect rings */}
+      {rings.map((ring) => (
         <div
-          key={burst.id}
-          className={styles.burstRing}
+          key={ring.id}
+          className={`${styles.ring} ${RING_EFFECTS[ring.effect].className}`}
           style={{
-            left: burst.x,
-            top: burst.y,
-            ["--burst-scale" as string]: burst.scale,
-            ["--burst-color" as string]: burst.color,
+            left: ring.x,
+            top: ring.y,
+            ["--ring-scale" as string]: ring.scale,
+            ["--ring-color" as string]: ring.color,
+            ["--ring-index" as string]: ring.index,
           }}
         />
       ))}
@@ -180,7 +206,10 @@ export default function Home() {
       <div className={styles.footer}>
         <div
           className={styles.terminal}
-          onClick={() => navigator.clipboard.writeText("ssh -p 56170 why.jonnii.com")}
+          onClick={(e) => {
+            e.stopPropagation();
+            navigator.clipboard.writeText("ssh -p 56170 why.jonnii.com");
+          }}
           title="Click to copy"
         >
           <span className={styles.terminalPrompt}>$</span>
@@ -201,6 +230,7 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="LinkedIn"
+            onClick={(e) => e.stopPropagation()}
           >
             <FontAwesomeIcon className={styles.socialIcon} icon={faLinkedin} />
           </a>
@@ -210,6 +240,7 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="GitHub"
+            onClick={(e) => e.stopPropagation()}
           >
             <FontAwesomeIcon className={styles.socialIcon} icon={faGithub} />
           </a>
@@ -219,6 +250,7 @@ export default function Home() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label="X (Twitter)"
+            onClick={(e) => e.stopPropagation()}
           >
             <FontAwesomeIcon className={styles.socialIcon} icon={faXTwitter} />
           </a>
