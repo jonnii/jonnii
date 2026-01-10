@@ -26,10 +26,8 @@ RUN apk add --no-cache openssh-keygen
 # Create non-root user
 RUN adduser -D -u 1000 appuser
 
-# Create .ssh directory for host keys with proper permissions
-# NOTE: For persistent host keys, mount a volume to /app/.ssh
-# e.g., docker run -v ssh-keys:/app/.ssh ...
-RUN mkdir -p .ssh && chown appuser:appuser .ssh
+# NOTE: For persistent host keys, mount a volume to /app/.ssh in Railway
+# Do not create .ssh directory here - let the volume mount handle it
 
 # Copy the binary
 COPY --from=builder /app/jonnii-ssh .

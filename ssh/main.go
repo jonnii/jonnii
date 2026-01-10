@@ -27,7 +27,7 @@ const (
 	defaultHost        = "0.0.0.0"
 	defaultPort        = "22"
 	defaultWidth       = 80
-	defaultHostKeyPath = ".ssh/id_ed25519"
+	defaultHostKeyPath = "/app/.ssh/id_ed25519"
 	maxWidth           = 200
 	minWidth           = 20
 )
