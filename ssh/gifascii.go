@@ -15,26 +15,36 @@ import (
 
 var defaultChars = []rune("108BRES")
 
+const (
+	defaultAspectRatio = 2.3 // Terminal character height/width ratio
+)
+
+// Frame represents a single ASCII frame with its display duration
+type Frame struct {
+	Content  string
+	DelayMs  int // Delay in milliseconds before showing next frame
+}
+
 // GifASCII converts a GIF to ASCII art frames
 type GifASCII struct {
-	Width      int
-	Height     int
-	Chars      []rune
-	FrameDelay int // in milliseconds
+	Width       int
+	Height      int
+	Chars       []rune
+	AspectRatio float64 // Terminal character aspect ratio (default 2.3)
 }
 
 // NewGifASCII creates a new GifASCII converter
 func NewGifASCII(width, height int) *GifASCII {
 	return &GifASCII{
-		Width:      width,
-		Height:     height,
-		Chars:      defaultChars,
-		FrameDelay: 50,
+		Width:       width,
+		Height:      height,
+		Chars:       defaultChars,
+		AspectRatio: defaultAspectRatio,
 	}
 }
 
-// ExtractFrames reads a GIF and returns ASCII frames
-func (g *GifASCII) ExtractFrames(r io.Reader) ([]string, error) {
+// ExtractFrames reads a GIF and returns ASCII frames with timing info
+func (g *GifASCII) ExtractFrames(r io.Reader) ([]Frame, error) {
 	gifImg, err := gif.DecodeAll(r)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode gif: %w", err)
@@ -54,19 +64,28 @@ func (g *GifASCII) ExtractFrames(r io.Reader) ([]string, error) {
 	}
 
 	// Calculate output height maintaining aspect ratio
-	// Divide by 2.3 to account for terminal character aspect ratio
 	if g.Height == 0 {
 		ratio := float64(firstFrame.Bounds().Dy()) / float64(firstFrame.Bounds().Dx())
-		g.Height = int(float64(g.Width) * ratio / 2.3)
+		g.Height = int(float64(g.Width) * ratio / g.AspectRatio)
 		if g.Height == 0 {
 			g.Height = 1 // Minimum height
 		}
 	}
 
-	frames := make([]string, 0, len(gifImg.Image))
-	for i, frame := range gifImg.Image {
-		asciiFrame := g.frameToASCII(frame, i)
-		frames = append(frames, asciiFrame)
+	frames := make([]Frame, 0, len(gifImg.Image))
+	for i, imgFrame := range gifImg.Image {
+		asciiContent := g.frameToASCII(imgFrame, i)
+
+		// GIF delay is in 100ths of a second, convert to milliseconds
+		delayMs := 100 // Default 100ms if not specified
+		if i < len(gifImg.Delay) && gifImg.Delay[i] > 0 {
+			delayMs = gifImg.Delay[i] * 10
+		}
+
+		frames = append(frames, Frame{
+			Content: asciiContent,
+			DelayMs: delayMs,
+		})
 	}
 
 	return frames, nil

@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
@@ -22,40 +23,54 @@ import (
 var rickRollGif []byte
 
 const (
-	defaultHost       = "0.0.0.0"
-	defaultPort       = "22"
-	defaultWidth      = 80
-	defaultFrameDelay = 50
+	defaultHost        = "0.0.0.0"
+	defaultPort        = "22"
+	defaultWidth       = 80
+	defaultHostKeyPath = ".ssh/id_ed25519"
+	maxWidth           = 200
+	minWidth           = 20
 )
 
 // Config holds server configuration
 type Config struct {
-	Host       string
-	Port       string
-	Width      int
-	FrameDelay int
+	Host        string
+	Port        string
+	Width       int
+	AspectRatio float64
+	HostKeyPath string
 }
 
 func loadConfig() Config {
 	cfg := Config{
-		Host:       defaultHost,
-		Port:       defaultPort,
-		Width:      defaultWidth,
-		FrameDelay: defaultFrameDelay,
+		Host:        defaultHost,
+		Port:        defaultPort,
+		Width:       defaultWidth,
+		AspectRatio: defaultAspectRatio,
+		HostKeyPath: defaultHostKeyPath,
 	}
 
 	if port := os.Getenv("PORT"); port != "" {
 		cfg.Port = port
 	}
 	if width := os.Getenv("ASCII_WIDTH"); width != "" {
-		if w, err := strconv.Atoi(width); err == nil && w > 0 {
-			cfg.Width = w
+		if w, err := strconv.Atoi(width); err == nil {
+			switch {
+			case w < minWidth:
+				cfg.Width = minWidth
+			case w > maxWidth:
+				cfg.Width = maxWidth
+			default:
+				cfg.Width = w
+			}
 		}
 	}
-	if delay := os.Getenv("FRAME_DELAY"); delay != "" {
-		if d, err := strconv.Atoi(delay); err == nil && d > 0 {
-			cfg.FrameDelay = d
+	if ratio := os.Getenv("ASPECT_RATIO"); ratio != "" {
+		if r, err := strconv.ParseFloat(ratio, 64); err == nil && r > 0 {
+			cfg.AspectRatio = r
 		}
+	}
+	if keyPath := os.Getenv("HOST_KEY_PATH"); keyPath != "" {
+		cfg.HostKeyPath = keyPath
 	}
 
 	return cfg
@@ -76,15 +91,19 @@ func main() {
 		fmt.Printf("Error extracting frames: %v\n", err)
 		os.Exit(1)
 	}
+	if len(frames) == 0 {
+		fmt.Println("Error: no frames extracted from GIF")
+		os.Exit(1)
+	}
 	fmt.Printf("Loaded %d animation frames\n", len(frames))
 
 	s, err := wish.NewServer(
 		wish.WithAddress(net.JoinHostPort(cfg.Host, cfg.Port)),
-		wish.WithHostKeyPath(".ssh/id_ed25519"),
+		wish.WithHostKeyPath(cfg.HostKeyPath),
 		wish.WithIdleTimeout(5*time.Minute),
 		wish.WithMaxTimeout(10*time.Minute),
 		wish.WithMiddleware(
-			rickRollMiddleware(frames, cfg.FrameDelay),
+			rickRollMiddleware(frames),
 			logging.Middleware(),
 		),
 	)
@@ -114,15 +133,21 @@ func main() {
 	}
 }
 
-func extractFrames(cfg Config) ([]string, error) {
+func extractFrames(cfg Config) ([]Frame, error) {
 	converter := NewGifASCII(cfg.Width, 0)
-	converter.FrameDelay = cfg.FrameDelay
+	converter.AspectRatio = cfg.AspectRatio
 	return converter.ExtractFrames(bytes.NewReader(rickRollGif))
 }
 
-func rickRollMiddleware(frames []string, frameDelay int) wish.Middleware {
+func rickRollMiddleware(frames []Frame) wish.Middleware {
 	return func(next ssh.Handler) ssh.Handler {
 		return func(sess ssh.Session) {
+			// Validate frames
+			if len(frames) == 0 {
+				fmt.Fprintln(sess, "Error: no animation frames available")
+				return
+			}
+
 			// Clear screen and hide cursor
 			if _, err := fmt.Fprint(sess, "\x1b[?25l"); err != nil {
 				return // Client disconnected
@@ -137,6 +162,12 @@ func rickRollMiddleware(frames []string, frameDelay int) wish.Middleware {
 
 			// Channel to signal stop from Ctrl+C
 			stopChan := make(chan struct{})
+			var closeOnce sync.Once
+			signalStop := func() {
+				closeOnce.Do(func() {
+					close(stopChan)
+				})
+			}
 
 			// Read input in background to detect Ctrl+C
 			go func() {
@@ -158,42 +189,33 @@ func rickRollMiddleware(frames []string, frameDelay int) wish.Middleware {
 								continue
 							}
 							// Real error or EOF - signal stop
-							select {
-							case <-stopChan:
-							default:
-								close(stopChan)
-							}
+							signalStop()
 							return
 						}
 						if n > 0 && buf[0] == 0x03 {
-							select {
-							case <-stopChan:
-							default:
-								close(stopChan)
-							}
+							signalStop()
 							return
 						}
 					}
 				}
 			}()
 
-			// Play animation loop
-			ticker := time.NewTicker(time.Duration(frameDelay) * time.Millisecond)
-			defer ticker.Stop()
-
+			// Play animation loop with per-frame timing
 			frameIdx := 0
 		animationLoop:
 			for {
+				frame := frames[frameIdx]
+
 				select {
 				case <-stopChan:
 					break animationLoop
 				case <-sess.Context().Done():
 					break animationLoop
-				case <-ticker.C:
+				case <-time.After(time.Duration(frame.DelayMs) * time.Millisecond):
 					if _, err := fmt.Fprint(sess, MoveCursorHome()); err != nil {
 						break animationLoop
 					}
-					if _, err := fmt.Fprint(sess, frames[frameIdx]); err != nil {
+					if _, err := fmt.Fprint(sess, frame.Content); err != nil {
 						break animationLoop
 					}
 					frameIdx = (frameIdx + 1) % len(frames)
@@ -214,6 +236,10 @@ func playDemo(cfg Config) {
 		fmt.Printf("Error: could not extract gif frames: %v\n", err)
 		os.Exit(1)
 	}
+	if len(frames) == 0 {
+		fmt.Println("Error: no frames extracted from GIF")
+		os.Exit(1)
+	}
 
 	// Handle Ctrl+C
 	sigChan := make(chan os.Signal, 1)
@@ -230,18 +256,17 @@ func playDemo(cfg Config) {
 		fmt.Println("Never gonna give you up! Goodbye!")
 	}()
 
-	// Play animation loop
-	ticker := time.NewTicker(time.Duration(cfg.FrameDelay) * time.Millisecond)
-	defer ticker.Stop()
-
+	// Play animation loop with per-frame timing
 	frameIdx := 0
 	for {
+		frame := frames[frameIdx]
+
 		select {
 		case <-sigChan:
 			return
-		case <-ticker.C:
+		case <-time.After(time.Duration(frame.DelayMs) * time.Millisecond):
 			fmt.Print(MoveCursorHome())
-			fmt.Print(frames[frameIdx])
+			fmt.Print(frame.Content)
 			frameIdx = (frameIdx + 1) % len(frames)
 		}
 	}

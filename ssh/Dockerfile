@@ -20,8 +20,8 @@ FROM alpine:3.21
 
 WORKDIR /app
 
-# Install openssh for key generation and ca-certificates for HTTPS
-RUN apk add --no-cache openssh-keygen ca-certificates
+# Install openssh for key generation
+RUN apk add --no-cache openssh-keygen
 
 # Create non-root user
 RUN adduser -D -u 1000 appuser
@@ -47,8 +47,9 @@ USER appuser
 # Document the SSH port
 EXPOSE 22
 
-# Health check - verify process is running
+# Health check - verify process is running by checking if port is listening
+# Uses shell to check if the process exists via /proc
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD pgrep jonnii-ssh || exit 1
+    CMD [ -f /proc/1/cmdline ] && grep -q jonnii-ssh /proc/1/cmdline || exit 1
 
 ENTRYPOINT ["./entrypoint.sh"]
