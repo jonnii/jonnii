@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/ssh"
 	"github.com/charmbracelet/wish"
 	"github.com/charmbracelet/wish/logging"
@@ -136,7 +137,176 @@ func main() {
 func extractFrames(cfg Config) ([]Frame, error) {
 	converter := NewGifASCII(cfg.Width, 0)
 	converter.AspectRatio = cfg.AspectRatio
-	return converter.ExtractFrames(bytes.NewReader(rickRollGif))
+	frames, err := converter.ExtractFrames(bytes.NewReader(rickRollGif))
+	if err != nil {
+		return nil, err
+	}
+
+	// Wrap each frame in a lipgloss border
+	framedFrames := make([]Frame, len(frames))
+	for i, frame := range frames {
+		framedFrames[i] = Frame{
+			Content: wrapInFrame(frame.Content),
+			DelayMs: frame.DelayMs,
+		}
+	}
+	return framedFrames, nil
+}
+
+// wrapInFrame wraps ASCII content in a lipgloss frame with title
+func wrapInFrame(content string) string {
+	frameStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("99")).
+		Padding(0, 1)
+
+	titleStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("99")).
+		Bold(true)
+
+	title := titleStyle.Render(" jonnii.com ")
+
+	// Render the frame
+	framed := frameStyle.Render(content)
+
+	// Insert title into the top border
+	lines := splitLines(framed)
+	if len(lines) > 0 {
+		// Find the corner character position (after any ANSI codes)
+		topLine := lines[0]
+		cornerIdx := findFirstVisibleChar(topLine)
+		if cornerIdx >= 0 {
+			// Find where the second visible character starts (first dash after corner)
+			afterCorner := cornerIdx + len(string([]rune(topLine[cornerIdx:])[0]))
+			titleWidth := visualWidth(title)
+
+			// Count how many bytes to skip for titleWidth visible characters
+			skipBytes := bytesForVisibleChars(topLine[afterCorner:], titleWidth)
+
+			// Build: prefix (including corner) + title + rest of border
+			lines[0] = topLine[:afterCorner] + title + topLine[afterCorner+skipBytes:]
+		}
+	}
+
+	return joinLines(lines)
+}
+
+// findFirstVisibleChar returns the byte index of the first non-ANSI character
+func findFirstVisibleChar(s string) int {
+	i := 0
+	for i < len(s) {
+		if s[i] == '\x1b' {
+			// Skip ANSI escape sequence
+			for i < len(s) && s[i] != 'm' {
+				i++
+			}
+			if i < len(s) {
+				i++ // skip the 'm'
+			}
+		} else {
+			return i
+		}
+	}
+	return -1
+}
+
+// bytesForVisibleChars returns how many bytes are needed to represent n visible characters
+func bytesForVisibleChars(s string, n int) int {
+	visible := 0
+	i := 0
+	for i < len(s) && visible < n {
+		if s[i] == '\x1b' {
+			// Skip ANSI escape sequence
+			for i < len(s) && s[i] != 'm' {
+				i++
+			}
+			if i < len(s) {
+				i++ // skip the 'm'
+			}
+		} else {
+			// Count this visible character
+			r, size := rune(s[i]), 1
+			if r >= 0x80 {
+				// Multi-byte UTF-8
+				_, size = decodeRune(s[i:])
+			}
+			i += size
+			visible++
+		}
+	}
+	return i
+}
+
+func decodeRune(s string) (rune, int) {
+	if len(s) == 0 {
+		return 0, 0
+	}
+	b := s[0]
+	if b < 0x80 {
+		return rune(b), 1
+	}
+	if b < 0xE0 {
+		if len(s) < 2 {
+			return 0, 1
+		}
+		return rune(b&0x1F)<<6 | rune(s[1]&0x3F), 2
+	}
+	if b < 0xF0 {
+		if len(s) < 3 {
+			return 0, 1
+		}
+		return rune(b&0x0F)<<12 | rune(s[1]&0x3F)<<6 | rune(s[2]&0x3F), 3
+	}
+	if len(s) < 4 {
+		return 0, 1
+	}
+	return rune(b&0x07)<<18 | rune(s[1]&0x3F)<<12 | rune(s[2]&0x3F)<<6 | rune(s[3]&0x3F), 4
+}
+
+func splitLines(s string) []string {
+	var lines []string
+	start := 0
+	for i := 0; i < len(s); i++ {
+		if s[i] == '\n' {
+			lines = append(lines, s[start:i])
+			start = i + 1
+		}
+	}
+	if start < len(s) {
+		lines = append(lines, s[start:])
+	}
+	return lines
+}
+
+func joinLines(lines []string) string {
+	result := ""
+	for i, line := range lines {
+		result += line
+		if i < len(lines)-1 {
+			result += "\n"
+		}
+	}
+	return result
+}
+
+func visualWidth(s string) int {
+	// Count visible characters, skipping ANSI escape sequences
+	width := 0
+	inEscape := false
+	for _, r := range s {
+		if r == '\x1b' {
+			inEscape = true
+			continue
+		}
+		if inEscape {
+			if r == 'm' {
+				inEscape = false
+			}
+			continue
+		}
+		width++
+	}
+	return width
 }
 
 func rickRollMiddleware(frames []Frame) wish.Middleware {
