@@ -82,14 +82,26 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const handleMove = (e: MouseEvent) => {
-      const x = `${e.clientX}px`;
-      const y = `${e.clientY}px`;
-      document.documentElement.style.setProperty("--mouse-x", x);
-      document.documentElement.style.setProperty("--mouse-y", y);
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      let clientX: number, clientY: number;
+      if ("touches" in e && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else if ("clientX" in e) {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      } else {
+        return;
+      }
+      document.documentElement.style.setProperty("--mouse-x", `${clientX}px`);
+      document.documentElement.style.setProperty("--mouse-y", `${clientY}px`);
     };
     window.addEventListener("mousemove", handleMove, { passive: true });
-    return () => window.removeEventListener("mousemove", handleMove as EventListener);
+    window.addEventListener("touchmove", handleMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", handleMove as EventListener);
+      window.removeEventListener("touchmove", handleMove as EventListener);
+    };
   }, []);
 
   useEffect(() => {
@@ -164,6 +176,8 @@ export default function Home() {
             aria-label={word}
             onMouseEnter={() => setHoveredRow(rowIndex)}
             onMouseLeave={() => setHoveredRow(null)}
+            onTouchStart={() => setHoveredRow(rowIndex)}
+            onTouchEnd={() => setTimeout(() => setHoveredRow(null), 600)}
             style={{
               ['--accent']: highlightPalette[rowIndex],
               ['--spot-accent']: highlightPalette[rowIndex],
