@@ -153,7 +153,30 @@ export default function Home() {
     return () => window.removeEventListener("resize", resize);
   }, []);
 
-  
+  // Auto-trigger radial burst every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const target = canvasRef.current ?? containerRef.current ?? document.documentElement;
+      const rect = target.getBoundingClientRect();
+      const padding = 24;
+      const minX = Math.floor(rect.left + padding);
+      const maxX = Math.floor(rect.right - padding);
+      const minY = Math.floor(rect.top + padding);
+      const maxY = Math.floor(rect.bottom - padding);
+      const rangeX = Math.max(0, maxX - minX);
+      const rangeY = Math.max(0, maxY - minY);
+      const randomX = rangeX ? minX + Math.floor(Math.random() * rangeX) : Math.floor((rect.left + rect.right) / 2);
+      const randomY = rangeY ? minY + Math.floor(Math.random() * rangeY) : Math.floor((rect.top + rect.bottom) / 2);
+
+      document.documentElement.style.setProperty("--mouse-x", `${randomX}px`);
+      document.documentElement.style.setProperty("--mouse-y", `${randomY}px`);
+      triggerRadialBurst(randomX, randomY);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [triggerRadialBurst]);
+
+
 
   return (
     <main className={styles.container} ref={containerRef}>
