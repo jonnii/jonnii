@@ -4,225 +4,179 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faGithub, faLinkedin, faXTwitter } from "@fortawesome/free-brands-svg-icons";
 import { useEffect, useRef, useCallback, useState, type CSSProperties } from "react";
 
+// Constants moved outside component to avoid recreation
+const WORD = "jonnii";
+const ROWS = Array.from({ length: 6 }, (_, i) => i);
+const HIGHLIGHT_PALETTE = [
+  "var(--red)",
+  "var(--violet)",
+  "var(--blue)",
+  "var(--orange)",
+  "var(--yellow)",
+  "var(--green)",
+];
+const EFFECT_CLASSES = [
+  styles.effectWave,
+  styles.effectTilt,
+  styles.effectUnderline,
+  styles.effectJelly,
+  styles.effectSkew,
+  styles.effectBlur,
+];
+const BURST_COLORS = ["--red", "--orange", "--yellow", "--green", "--blue", "--violet"];
+
+interface BurstRing {
+  id: number;
+  x: number;
+  y: number;
+  scale: number;
+  color: string;
+}
+
 export default function Home() {
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const clickIdRef = useRef<number>(0);
-  const word = "jonnii";
-  const rows = Array.from({ length: 6 }, (_, index) => index);
+  const burstIdRef = useRef(0);
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
-  const highlightPalette = [
-    "var(--red)",
-    "var(--violet)",
-    "var(--blue)",
-    "var(--orange)",
-    "var(--yellow)",
-    "var(--green)",
-  ];
+  const [bursts, setBursts] = useState<BurstRing[]>([]);
 
-  const triggerRadialBurst = useCallback((clientX: number, clientY: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    const root = document.documentElement;
-    const computed = getComputedStyle(root);
-    const vars = ["--red", "--orange", "--yellow", "--green", "--blue", "--violet"] as const;
-    const palette = vars.map((v) => computed.getPropertyValue(v).trim()).filter(Boolean);
-    const clickId = (clickIdRef.current = clickIdRef.current + 1);
-
-    const origin = { x: clientX, y: clientY };
-    const maxR = Math.hypot(Math.max(origin.x, width - origin.x), Math.max(origin.y, height - origin.y));
-    const start = performance.now();
-    const duration = 1800;
-    const grid = 16;
-    const ringThickness = 16;
-
-    const seededIndex = (x: number, y: number) => {
-      const n = Math.imul(2654435761, x + 374761393) ^ Math.imul(1597334677, y + 88675123) ^ (clickId * 1013904223);
-      return Math.abs(n) % palette.length;
-    };
-
-    const draw = (now: number) => {
-      const t = Math.min(1, (now - start) / duration);
-      const ease = 1 - Math.pow(1 - t, 3);
-      const r = ease * maxR;
-      ctx.clearRect(0, 0, width, height);
-      ctx.save();
-      ctx.globalAlpha = 0.95;
-
-      const x0 = Math.max(0, Math.floor((origin.x - r - ringThickness) / grid) * grid);
-      const y0 = Math.max(0, Math.floor((origin.y - r - ringThickness) / grid) * grid);
-      const x1 = Math.min(width, Math.ceil((origin.x + r + ringThickness) / grid) * grid);
-      const y1 = Math.min(height, Math.ceil((origin.y + r + ringThickness) / grid) * grid);
-
-      for (let y = y0; y <= y1; y += grid) {
-        for (let x = x0; x <= x1; x += grid) {
-          const d = Math.hypot(x - origin.x, y - origin.y);
-          if (Math.abs(d - r) <= ringThickness * 0.5) {
-            const idx = seededIndex(x, y);
-            ctx.fillStyle = palette[idx];
-            ctx.beginPath();
-            ctx.arc(x, y, 2.6, 0, Math.PI * 2);
-            ctx.fill();
-          }
-        }
-      }
-
-      ctx.restore();
-      if (t < 1) requestAnimationFrame(draw);
-      else ctx.clearRect(0, 0, width, height);
-    };
-
-    requestAnimationFrame(draw);
+  // Cache computed colors on mount
+  const colorsRef = useRef<string[]>([]);
+  useEffect(() => {
+    const computed = getComputedStyle(document.documentElement);
+    colorsRef.current = BURST_COLORS.map((v) => computed.getPropertyValue(v).trim()).filter(Boolean);
   }, []);
 
+  // Helper to get random position within bounds
+  const getRandomPosition = useCallback(() => {
+    const el = containerRef.current ?? document.documentElement;
+    const rect = el.getBoundingClientRect();
+    const padding = 24;
+    const rangeX = Math.max(0, rect.width - padding * 2);
+    const rangeY = Math.max(0, rect.height - padding * 2);
+    return {
+      x: Math.floor(rect.left + padding + Math.random() * rangeX),
+      y: Math.floor(rect.top + padding + Math.random() * rangeY),
+    };
+  }, []);
+
+  // Trigger CSS-based radial burst at specific position or random
+  const triggerBurst = useCallback((position?: { x: number; y: number }) => {
+    const { x, y } = position ?? getRandomPosition();
+    // Calculate scale needed to cover screen from this point (base size is 100px)
+    const maxDist = Math.max(
+      Math.hypot(x, y),
+      Math.hypot(window.innerWidth - x, y),
+      Math.hypot(x, window.innerHeight - y),
+      Math.hypot(window.innerWidth - x, window.innerHeight - y)
+    );
+    const scale = (maxDist * 2) / 100;
+    const colors = colorsRef.current;
+    const color = colors.length > 0 ? colors[burstIdRef.current % colors.length] : "#268bd2";
+
+    const burst: BurstRing = {
+      id: burstIdRef.current++,
+      x,
+      y,
+      scale,
+      color,
+    };
+
+    // Update mouse position for dot grid spotlight
+    document.documentElement.style.setProperty("--mouse-x", `${x}px`);
+    document.documentElement.style.setProperty("--mouse-y", `${y}px`);
+
+    setBursts((prev) => [...prev, burst]);
+
+    // Remove after animation completes
+    setTimeout(() => {
+      setBursts((prev) => prev.filter((b) => b.id !== burst.id));
+    }, 1800);
+  }, [getRandomPosition]);
+
+  // Mouse/touch move handler for dot grid spotlight
   useEffect(() => {
     const handleMove = (e: MouseEvent | TouchEvent) => {
-      let clientX: number, clientY: number;
-      if ("touches" in e && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-      } else if ("clientX" in e) {
-        clientX = e.clientX;
-        clientY = e.clientY;
-      } else {
-        return;
-      }
-      document.documentElement.style.setProperty("--mouse-x", `${clientX}px`);
-      document.documentElement.style.setProperty("--mouse-y", `${clientY}px`);
+      const point = "touches" in e && e.touches.length > 0 ? e.touches[0] : (e as MouseEvent);
+      if (!("clientX" in point)) return;
+      document.documentElement.style.setProperty("--mouse-x", `${point.clientX}px`);
+      document.documentElement.style.setProperty("--mouse-y", `${point.clientY}px`);
     };
+
     window.addEventListener("mousemove", handleMove, { passive: true });
     window.addEventListener("touchmove", handleMove, { passive: true });
     return () => {
-      window.removeEventListener("mousemove", handleMove as EventListener);
-      window.removeEventListener("touchmove", handleMove as EventListener);
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("touchmove", handleMove);
     };
   }, []);
 
+  // Click handler for manual burst at click position
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    const onClick = () => {
-      // start effect from a random position strictly within the canvas bounds
-      const target = canvasRef.current ?? containerRef.current ?? document.documentElement;
-      const rect = target.getBoundingClientRect();
-      const padding = 24;
-      const minX = Math.floor(rect.left + padding);
-      const maxX = Math.floor(rect.right - padding);
-      const minY = Math.floor(rect.top + padding);
-      const maxY = Math.floor(rect.bottom - padding);
-      const rangeX = Math.max(0, maxX - minX);
-      const rangeY = Math.max(0, maxY - minY);
-      const randomX = rangeX ? minX + Math.floor(Math.random() * rangeX) : Math.floor((rect.left + rect.right) / 2);
-      const randomY = rangeY ? minY + Math.floor(Math.random() * rangeY) : Math.floor((rect.top + rect.bottom) / 2);
-      const x = `${randomX}px`;
-      const y = `${randomY}px`;
-      document.documentElement.style.setProperty("--mouse-x", x);
-      document.documentElement.style.setProperty("--mouse-y", y);
-
-      triggerRadialBurst(randomX, randomY);
+    const handleClick = (e: MouseEvent) => {
+      triggerBurst({ x: e.clientX, y: e.clientY });
     };
-    el.addEventListener("click", onClick as EventListener);
-    return () => {
-      el.removeEventListener("click", onClick as EventListener);
-    };
-  }, [triggerRadialBurst]);
+    el.addEventListener("click", handleClick);
+    return () => el.removeEventListener("click", handleClick);
+  }, [triggerBurst]);
 
+  // Auto-trigger burst every 5 seconds at random position
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, width, height);
-      }
-    };
-    resize();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
-
-  // Auto-trigger radial burst every 5 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const target = canvasRef.current ?? containerRef.current ?? document.documentElement;
-      const rect = target.getBoundingClientRect();
-      const padding = 24;
-      const minX = Math.floor(rect.left + padding);
-      const maxX = Math.floor(rect.right - padding);
-      const minY = Math.floor(rect.top + padding);
-      const maxY = Math.floor(rect.bottom - padding);
-      const rangeX = Math.max(0, maxX - minX);
-      const rangeY = Math.max(0, maxY - minY);
-      const randomX = rangeX ? minX + Math.floor(Math.random() * rangeX) : Math.floor((rect.left + rect.right) / 2);
-      const randomY = rangeY ? minY + Math.floor(Math.random() * rangeY) : Math.floor((rect.top + rect.bottom) / 2);
-
-      document.documentElement.style.setProperty("--mouse-x", `${randomX}px`);
-      document.documentElement.style.setProperty("--mouse-y", `${randomY}px`);
-      triggerRadialBurst(randomX, randomY);
-    }, 5000);
-
+    const interval = setInterval(() => triggerBurst(), 5000);
     return () => clearInterval(interval);
-  }, [triggerRadialBurst]);
-
-
+  }, [triggerBurst]);
 
   return (
     <main className={styles.container} ref={containerRef}>
-      <canvas ref={canvasRef} className={styles.bgCanvas} />
-      {rows.map((rowIndex) => {
-        const highlightIndex = rowIndex;
-        const effectClasses = [
-          styles.effectWave,
-          styles.effectTilt,
-          styles.effectUnderline,
-          styles.effectJelly,
-          styles.effectSkew,
-          styles.effectBlur,
-        ];
-        const effectClass = effectClasses[rowIndex % effectClasses.length];
-        return (
-          <div
-            key={rowIndex}
-            className={`${styles.row} ${effectClass}`}
-            aria-label={word}
-            onMouseEnter={() => setHoveredRow(rowIndex)}
-            onMouseLeave={() => setHoveredRow(null)}
-            onTouchStart={() => setHoveredRow(rowIndex)}
-            onTouchEnd={() => setTimeout(() => setHoveredRow(null), 600)}
-            style={{
-              ['--accent']: highlightPalette[rowIndex],
-              ['--spot-accent']: highlightPalette[rowIndex],
-              ['--row-index']: rowIndex,
-              ['--row-count']: rows.length,
-            } as CSSProperties}
-          >
-            {word.split("").map((char, charIndex) => {
-              const isHighlight = charIndex === highlightIndex;
-              return (
-                <span
-                  key={`${rowIndex}-${charIndex}`}
-                  className={isHighlight ? styles.highlight : styles.letter}
-                  style={isHighlight ? { color: highlightPalette[rowIndex] } : undefined}
-                >
-                  {char}
-                </span>
-              );
-            })}
-          </div>
-        );
-      })}
+      {/* CSS-animated burst rings */}
+      {bursts.map((burst) => (
+        <div
+          key={burst.id}
+          className={styles.burstRing}
+          style={{
+            left: burst.x,
+            top: burst.y,
+            ["--burst-scale" as string]: burst.scale,
+            ["--burst-color" as string]: burst.color,
+          }}
+        />
+      ))}
+
+      {ROWS.map((rowIndex) => (
+        <div
+          key={rowIndex}
+          className={`${styles.row} ${EFFECT_CLASSES[rowIndex % EFFECT_CLASSES.length]}`}
+          aria-label={WORD}
+          onMouseEnter={() => setHoveredRow(rowIndex)}
+          onMouseLeave={() => setHoveredRow(null)}
+          onTouchStart={() => setHoveredRow(rowIndex)}
+          onTouchEnd={() => setTimeout(() => setHoveredRow(null), 600)}
+          style={{
+            ["--accent"]: HIGHLIGHT_PALETTE[rowIndex],
+            ["--spot-accent"]: HIGHLIGHT_PALETTE[rowIndex],
+            ["--row-index"]: rowIndex,
+            ["--row-count"]: ROWS.length,
+          } as CSSProperties}
+        >
+          {WORD.split("").map((char, charIndex) => {
+            const isHighlight = charIndex === rowIndex;
+            return (
+              <span
+                key={charIndex}
+                className={isHighlight ? styles.highlight : styles.letter}
+                style={{
+                  ["--char-index"]: charIndex,
+                  ...(isHighlight ? { color: HIGHLIGHT_PALETTE[rowIndex] } : {}),
+                } as CSSProperties}
+              >
+                {char}
+              </span>
+            );
+          })}
+        </div>
+      ))}
+
       <div className={styles.footer}>
         <div
           className={styles.terminal}
@@ -233,7 +187,7 @@ export default function Home() {
           <span className={styles.terminalCommand}>
             <span
               className={styles.terminalKeyword}
-              style={hoveredRow !== null ? { color: highlightPalette[hoveredRow] } : undefined}
+              style={hoveredRow !== null ? { color: HIGHLIGHT_PALETTE[hoveredRow] } : undefined}
             >
               ssh
             </span>{" "}
@@ -241,32 +195,32 @@ export default function Home() {
           </span>
         </div>
         <nav className={styles.socials} aria-label="social links">
-        <a
-          className={styles.socialLink}
-          href="https://www.linkedin.com/in/jonathan-goldman-%F0%9F%A7%8D-0661781/"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="LinkedIn"
-        >
-          <FontAwesomeIcon className={styles.socialIcon} icon={faLinkedin} />
-        </a>
-        <a
-          className={styles.socialLink}
-          href="https://github.com/jonnii"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="GitHub"
-        >
-          <FontAwesomeIcon className={styles.socialIcon} icon={faGithub} />
-        </a>
-        <a
-          className={styles.socialLink}
-          href="https://x.com/jonnii"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="X (Twitter)"
-        >
-          <FontAwesomeIcon className={styles.socialIcon} icon={faXTwitter} />
+          <a
+            className={styles.socialLink}
+            href="https://www.linkedin.com/in/jonathan-goldman-%F0%9F%A7%8D-0661781/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="LinkedIn"
+          >
+            <FontAwesomeIcon className={styles.socialIcon} icon={faLinkedin} />
+          </a>
+          <a
+            className={styles.socialLink}
+            href="https://github.com/jonnii"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub"
+          >
+            <FontAwesomeIcon className={styles.socialIcon} icon={faGithub} />
+          </a>
+          <a
+            className={styles.socialLink}
+            href="https://x.com/jonnii"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="X (Twitter)"
+          >
+            <FontAwesomeIcon className={styles.socialIcon} icon={faXTwitter} />
           </a>
         </nav>
       </div>

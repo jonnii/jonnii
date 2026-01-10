@@ -12,11 +12,29 @@
   --row-foreground-max: 36%;
 }
 
-.bgCanvas {
+/* Radial burst ring animation */
+@keyframes radialBurst {
+  0% {
+    transform: scale(0);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(var(--burst-scale, 50));
+    opacity: 0;
+  }
+}
+
+.burstRing {
   position: fixed;
-  inset: 0;
-  z-index: -1;
+  width: 100px;
+  height: 100px;
+  margin-left: -50px;
+  margin-top: -50px;
+  border-radius: 50%;
   pointer-events: none;
+  z-index: 10;
+  border: 3px dotted var(--burst-color, var(--blue));
+  animation: radialBurst 1.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .container::before {
@@ -153,9 +171,8 @@
 }
 
 .letter {
-  /* Base letter tone varies by row:
-     - In light mode: deeper (darker) as rows go down
-     - In dark mode: lighter as rows go down */
+  /* Base letter tone varies by row */
+  --char-index: 0;
   color: color-mix(in srgb,
     var(--foreground)
     calc(clamp(
@@ -175,26 +192,16 @@
 /* Effect: Wave */
 .effectWave:hover .letter {
   animation: rowWave 600ms ease-out both;
+  animation-delay: calc(var(--char-index) * 40ms);
   color: var(--accent);
 }
-.effectWave:hover .letter:nth-child(1) { animation-delay: 0ms; }
-.effectWave:hover .letter:nth-child(2) { animation-delay: 40ms; }
-.effectWave:hover .letter:nth-child(3) { animation-delay: 80ms; }
-.effectWave:hover .letter:nth-child(4) { animation-delay: 120ms; }
-.effectWave:hover .letter:nth-child(5) { animation-delay: 160ms; }
-.effectWave:hover .letter:nth-child(6) { animation-delay: 200ms; }
 
 /* Effect: Tilt */
 .effectTilt:hover .letter {
   animation: tilt 500ms ease-out both;
+  animation-delay: calc(var(--char-index) * 40ms);
   color: var(--accent);
 }
-.effectTilt:hover .letter:nth-child(1) { animation-delay: 0ms; }
-.effectTilt:hover .letter:nth-child(2) { animation-delay: 40ms; }
-.effectTilt:hover .letter:nth-child(3) { animation-delay: 80ms; }
-.effectTilt:hover .letter:nth-child(4) { animation-delay: 120ms; }
-.effectTilt:hover .letter:nth-child(5) { animation-delay: 160ms; }
-.effectTilt:hover .letter:nth-child(6) { animation-delay: 200ms; }
 
 /* Effect: Underline sweep */
 .effectUnderline .letter {
@@ -203,67 +210,34 @@
   background-size: 0% 2px;
   background-position: 0 100%;
   transition: color 0.25s ease, background-size 250ms ease;
+  transition-delay: calc(var(--char-index) * 40ms);
 }
 .effectUnderline:hover .letter {
   color: var(--accent);
   background-size: 100% 2px;
 }
-.effectUnderline:hover .letter:nth-child(1) { transition-delay: 0ms; }
-.effectUnderline:hover .letter:nth-child(2) { transition-delay: 40ms; }
-.effectUnderline:hover .letter:nth-child(3) { transition-delay: 80ms; }
-.effectUnderline:hover .letter:nth-child(4) { transition-delay: 120ms; }
-.effectUnderline:hover .letter:nth-child(5) { transition-delay: 160ms; }
-.effectUnderline:hover .letter:nth-child(6) { transition-delay: 200ms; }
 
 /* Effect: Jelly */
 .effectJelly:hover .letter {
   animation: jelly 650ms ease-out both;
+  animation-delay: calc(var(--char-index) * 40ms);
   color: var(--accent);
 }
-.effectJelly:hover .letter:nth-child(1) { animation-delay: 0ms; }
-.effectJelly:hover .letter:nth-child(2) { animation-delay: 40ms; }
-.effectJelly:hover .letter:nth-child(3) { animation-delay: 80ms; }
-.effectJelly:hover .letter:nth-child(4) { animation-delay: 120ms; }
-.effectJelly:hover .letter:nth-child(5) { animation-delay: 160ms; }
-.effectJelly:hover .letter:nth-child(6) { animation-delay: 200ms; }
 
 /* Effect: Skew */
 .effectSkew:hover .letter {
   animation: skew 520ms ease-out both;
+  animation-delay: calc(var(--char-index) * 40ms);
   color: var(--accent);
 }
-.effectSkew:hover .letter:nth-child(1) { animation-delay: 0ms; }
-.effectSkew:hover .letter:nth-child(2) { animation-delay: 40ms; }
-.effectSkew:hover .letter:nth-child(3) { animation-delay: 80ms; }
-.effectSkew:hover .letter:nth-child(4) { animation-delay: 120ms; }
-.effectSkew:hover .letter:nth-child(5) { animation-delay: 160ms; }
-.effectSkew:hover .letter:nth-child(6) { animation-delay: 200ms; }
 
 /* Effect: Blur Glow */
 .effectBlur:hover .letter {
   animation: blurIn 520ms ease-out both;
+  animation-delay: calc(var(--char-index) * 40ms);
   color: var(--accent);
 }
-.effectBlur:hover .letter:nth-child(1) { animation-delay: 0ms; }
-.effectBlur:hover .letter:nth-child(2) { animation-delay: 40ms; }
-.effectBlur:hover .letter:nth-child(3) { animation-delay: 80ms; }
-.effectBlur:hover .letter:nth-child(4) { animation-delay: 120ms; }
-.effectBlur:hover .letter:nth-child(5) { animation-delay: 160ms; }
-.effectBlur:hover .letter:nth-child(6) { animation-delay: 200ms; }
 
-@media (prefers-color-scheme: dark) {
-  .letter {
-    color: color-mix(in srgb,
-      var(--foreground)
-      calc(clamp(
-        var(--row-foreground-min, 10%),
-        (1 - (var(--row-index) / max(1, var(--row-count) - 1))) * var(--row-foreground-max, 36%),
-        var(--row-foreground-max, 36%)
-      )),
-      var(--background)
-    );
-  }
-}
 
 .footer {
   display: flex;
@@ -318,12 +292,6 @@
 
 .socialLink:hover {
   color: var(--link-hover);
-}
-
-@media (prefers-color-scheme: dark) {
-  .socialLink {
-    color: var(--muted-strong);
-  }
 }
 
 .socialIcon {
