@@ -1,5 +1,10 @@
 :root {
-  /* Solarized base (Light default) */
+  /* Structural defaults shared across every theme. Individual themes override
+     the named accent colors and the semantic tokens below via [data-theme].
+     The :root values double as the fallback theme (Solarized) so the page is
+     never unstyled if the theme script hasn't run yet. */
+
+  /* Solarized base */
   --base03: #002b36;
   --base02: #073642;
   --base01: #586e75;
@@ -28,9 +33,32 @@
   --link-hover: var(--violet);
 }
 
+/* ============================================================
+   Theme: Solarized
+   The classic muted retro-terminal palette. Adapts light/dark
+   to the visitor's system preference.
+   ============================================================ */
+[data-theme="solarized"] {
+  --yellow: #b58900;
+  --orange: #cb4b16;
+  --red: #dc322f;
+  --magenta: #d33682;
+  --violet: #6c71c4;
+  --blue: #268bd2;
+  --cyan: #2aa198;
+  --green: #859900;
+
+  --background: var(--base3);
+  --foreground: var(--base00);
+  --muted: var(--base1);
+  --muted-strong: var(--base01);
+  --link: var(--blue);
+  --link-hover: var(--violet);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
-    /* Switch to Solarized Dark */
+  :root,
+  [data-theme="solarized"] {
     --background: var(--base03);
     --foreground: var(--base0);
     --muted: var(--base01);
@@ -38,6 +66,33 @@
     --link: var(--cyan);
     --link-hover: var(--blue);
   }
+}
+
+/* ============================================================
+   Theme: Strokes
+   After The Strokes — "Future Present Past" EP cover: a warm
+   cream field with five bold lozenge bars (vermilion, orange,
+   golden, green, royal blue) and near-black navy lettering.
+   ============================================================ */
+[data-theme="strokes"] {
+  --red: #d83a2b;
+  --orange: #e16a28;
+  --yellow: #d6a520;
+  --green: #36b34a;
+  --blue: #1f2f9b;
+  --violet: #6c4aa8;
+  --magenta: #c63d7a;
+  --cyan: #2a9d8f;
+
+  --background: #f4edcf;
+  --foreground: #232742;
+  --muted: #b8ad84;
+  --muted-strong: #232742;
+  --link: #1f2f9b;
+  --link-hover: #d83a2b;
+
+  /* Always a light, warm field regardless of system preference */
+  color-scheme: light;
 }
 
 html,
@@ -66,7 +121,8 @@ a {
 }
 
 @media (prefers-color-scheme: dark) {
-  html {
+  :root,
+  [data-theme="solarized"] {
     color-scheme: dark;
   }
 }
