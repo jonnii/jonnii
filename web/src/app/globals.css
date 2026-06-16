@@ -1,5 +1,16 @@
+/* ============================================================
+   Structural defaults + per-theme design tokens.
+
+   Each theme is a *whole design* (see src/themes), but the page
+   backdrop must be painted before any JS runs. So every theme's
+   background/foreground tokens live here, keyed on the
+   [data-theme] attribute that the blocking <head> script sets
+   before first paint. The :root values double as the pre-roll
+   fallback (Solarized) so the page is never unstyled.
+   ============================================================ */
+
 :root {
-  /* Solarized base (Light default) */
+  /* Solarized base palette (constants) */
   --base03: #002b36;
   --base02: #073642;
   --base01: #586e75;
@@ -19,7 +30,7 @@
   --cyan: #2aa198;
   --green: #859900;
 
-  /* Theme tokens (Light default) */
+  /* Fallback theme tokens (Solarized light) */
   --background: var(--base3);
   --foreground: var(--base00);
   --muted: var(--base1);
@@ -28,18 +39,43 @@
   --link-hover: var(--violet);
 }
 
+/* ---- Design: Original (Solarized terminal) ----------------
+   The classic muted retro-terminal palette; adapts light/dark
+   to the visitor's system preference. ----------------------- */
 @media (prefers-color-scheme: dark) {
-  :root {
-    /* Switch to Solarized Dark */
+  :root,
+  html[data-theme="original"] {
     --background: var(--base03);
     --foreground: var(--base0);
     --muted: var(--base01);
     --muted-strong: var(--base1);
     --link: var(--cyan);
     --link-hover: var(--blue);
+    color-scheme: dark;
   }
 }
 
+/* ---- Design: Strokes (Future Present Past) ----------------
+   A warm cream poster after The Strokes' EP cover. Always a
+   light, warm field regardless of system preference. --------- */
+html[data-theme="strokes"] {
+  --s-red: #e3402f;
+  --s-orange: #ee7b30;
+  --s-yellow: #efb22c;
+  --s-green: #34a85a;
+  --s-blue: #2a3fae;
+
+  --background: #f3ead0;
+  --foreground: #1c2138;
+  --muted: #b8ad84;
+  --muted-strong: #1c2138;
+  --link: #2a3fae;
+  --link-hover: #e3402f;
+
+  color-scheme: light;
+}
+
+/* ---- Structural reset ------------------------------------ */
 html,
 body {
   max-width: 100vw;
@@ -49,7 +85,6 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  /* font-family comes from next/font (Major Mono Display) on <body> */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -65,8 +100,15 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+/* Placeholder shown by ThemeStage before a design resolves */
+.stagePlaceholder {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
