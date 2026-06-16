@@ -7,6 +7,10 @@
   gap: 12px;
   position: relative;
   isolation: isolate;
+  /* This design's typeface (loaded as a next/font variable in app/layout) */
+  font-family: var(--font-major-mono), ui-monospace, monospace;
+  color: var(--foreground);
+  background: var(--background);
   /* Gradient tuning variables */
   --row-foreground-min: 10%;
   --row-foreground-max: 36%;

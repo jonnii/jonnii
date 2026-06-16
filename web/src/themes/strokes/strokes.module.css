@@ -1,0 +1,257 @@
+/* ============================================================
+   Theme: Strokes — "Future Present Past"
+   A warm mid-century poster. Cream paper field, overlapping
+   bold lozenge bars, heavy condensed type. The wordmark, the
+   ssh invite and the socials are all re-cut into this language.
+   Palette + backdrop tokens live in globals.css so the head
+   script can paint them before first paint.
+   ============================================================ */
+
+.stage {
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(30px, 6vh, 64px);
+  padding: clamp(24px, 5vw, 56px);
+  overflow: hidden;
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  color: var(--foreground);
+  /* Cream paper with a faint warm glow rising from the top */
+  background:
+    radial-gradient(
+      130% 120% at 50% -10%,
+      color-mix(in srgb, var(--s-yellow) 12%, transparent),
+      transparent 55%
+    ),
+    var(--background);
+}
+
+/* Fine paper grain for tactile depth */
+.stage::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.burstCanvas {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* ----- Wordmark: vertical bars woven between letters ------ */
+.word {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 1.4vw, 20px);
+  width: min(96vw, 940px);
+  /* Wire One: a naturally thin, tall display face */
+  font-family: var(--font-wire-one), ui-monospace, monospace;
+  font-weight: 400;
+  font-size: clamp(64px, 12vw, 168px);
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--foreground);
+}
+
+.bar {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: clamp(70px, 11vw, 116px);
+  height: clamp(210px, 42vh, 360px);
+  border-radius: 999px;
+  transform-origin: center;
+  transform: scaleY(0);
+  opacity: 0;
+  animation: barIn 720ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  animation-delay: calc(var(--bi) * 80ms);
+}
+
+/* Letter knocked out of its capsule (color set inline per bar). Wire One is
+   already tall + narrow; a touch of extra height seats it in the capsule. */
+.letter {
+  display: inline-block;
+  transform-origin: center;
+  transform: scaleY(1.55);
+  transition: transform 0.22s ease;
+  cursor: default;
+}
+
+.letter:hover {
+  transform: scaleY(1.7);
+}
+
+/* ----- Footer: ssh chip + social capsules ----------------- */
+.footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(14px, 2.4vw, 22px);
+  opacity: 0;
+  animation: fadeUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.9s both;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 9px 9px 20px;
+  appearance: none;
+  background: transparent;
+  color: var(--foreground);
+  border: 2px solid var(--foreground);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.chip:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--foreground) 6%, transparent);
+}
+
+.chip:focus-visible {
+  outline: 3px solid var(--s-blue);
+  outline-offset: 3px;
+}
+
+.chipCmd {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Monaco, monospace;
+  font-size: clamp(12px, 1.5vw, 14px);
+  letter-spacing: 0.01em;
+}
+
+.chipState {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 5px 13px;
+  border-radius: 999px;
+  background: var(--foreground);
+  color: var(--background);
+  transition: background 0.2s ease;
+}
+
+.chipCopied {
+  border-color: var(--s-green);
+}
+.chipCopied .chipState {
+  background: var(--s-green);
+}
+
+.socials {
+  display: flex;
+  gap: clamp(10px, 1.6vw, 14px);
+}
+
+.social {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--foreground);
+  border-radius: 999px;
+  color: var(--foreground);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.social:hover {
+  background: var(--sc);
+  border-color: var(--sc);
+  color: var(--background);
+  transform: translateY(-3px);
+}
+
+.social:focus-visible {
+  outline: 3px solid var(--sc);
+  outline-offset: 3px;
+}
+
+.socialIcon {
+  width: 20px;
+  height: 20px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ----- Motion --------------------------------------------- */
+@keyframes barIn {
+  from {
+    transform: scaleY(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer,
+  .bar,
+  .letter {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .bar {
+    transform: scaleY(1);
+  }
+  .letter {
+    transform: scaleY(1.55);
+  }
+}
+
+/* ----- Mobile --------------------------------------------- */
+@media (max-width: 640px) {
+  .word {
+    width: 96vw;
+    gap: 2px;
+  }
+  .footer {
+    flex-direction: column;
+  }
+  .social {
+    width: 44px;
+    height: 44px;
+  }
+}
