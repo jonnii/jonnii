@@ -1,6 +1,5 @@
 "use client";
 import styles from "./defrag.module.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   useEffect,
   useMemo,
@@ -8,13 +7,8 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
-import { THEMES } from "../registry";
-
-// This file *is* the defrag design, so the Start menu marks it as the current
-// theme. Switching themes navigates to ?theme=<id>, which the blocking <head>
-// script in app/layout reads to pin a design before first paint.
-const THEME_ID = "defrag";
+import { WORD, SSH_COMMAND, COPY_FEEDBACK_MS } from "../shared/content";
+import Taskbar from "../shared/Taskbar";
 
 // Cluster map dimensions — a dense grid of "disk clusters", like the real
 // Disk Defragmenter's drive map.
@@ -102,20 +96,6 @@ const cellClass: Record<CellType, string> = {
   system: styles.system,
 };
 
-function trayGlyph(label: string): string {
-  if (label === "LinkedIn") return "in";
-  if (label === "GitHub") return "gh";
-  if (label.startsWith("X")) return "x";
-  return label.slice(0, 2).toLowerCase();
-}
-
-function trayBrandColor(label: string): string {
-  if (label === "LinkedIn") return "#0a66c2";
-  if (label === "GitHub") return "#181717";
-  if (label.startsWith("X")) return "#000000";
-  return "var(--w95-dk)";
-}
-
 function statusFor(pct: number): string {
   if (pct >= 100) return "Defragmentation of Drive C is complete.";
   if (pct < 6) return "Reading drive information…";
@@ -125,9 +105,7 @@ function statusFor(pct: number): string {
 export default function DefragTheme() {
   const cells = useMemo(buildCells, []);
   const [pct, setPct] = useState(0);
-  const [clock, setClock] = useState("");
   const [copied, setCopied] = useState(false);
-  const [startOpen, setStartOpen] = useState(false);
   const copyResetRef = useRef<number | null>(null);
 
   // Counter clamped to 100 for display; it runs past 100 to hold the finished
@@ -154,35 +132,11 @@ export default function DefragTheme() {
     return () => window.clearInterval(id);
   }, []);
 
-  // Live taskbar clock — client-only mount, so no hydration mismatch.
-  useEffect(() => {
-    const tick = () =>
-      setClock(
-        new Date().toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-        })
-      );
-    tick();
-    const id = window.setInterval(tick, 1000);
-    return () => window.clearInterval(id);
-  }, []);
-
   useEffect(() => {
     return () => {
       if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current);
     };
   }, []);
-
-  // Close the Start menu on Escape.
-  useEffect(() => {
-    if (!startOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setStartOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [startOpen]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(SSH_COMMAND);
@@ -329,122 +283,8 @@ export default function DefragTheme() {
         </div>
       </section>
 
-      {/* Taskbar */}
-      <footer className={styles.taskbar}>
-        <div className={styles.startWrap}>
-          {startOpen && (
-            <>
-              {/* Click-away backdrop */}
-              <div
-                className={styles.startOverlay}
-                onClick={() => setStartOpen(false)}
-              />
-              <div className={styles.startMenu} role="menu">
-                <div className={styles.startBanner} aria-hidden="true">
-                  <span>
-                    jonnii<b>95</b>
-                  </span>
-                </div>
-                <div className={styles.startList}>
-                  <div className={styles.startSection}>Themes</div>
-                  {THEMES.map((t) => (
-                    <a
-                      key={t.id}
-                      href={`?theme=${t.id}`}
-                      className={styles.startItem}
-                      role="menuitem"
-                      aria-current={t.id === THEME_ID ? "true" : undefined}
-                    >
-                      <span className={styles.startBullet} aria-hidden="true">
-                        {t.id === THEME_ID ? "●" : "○"}
-                      </span>
-                      {t.label}
-                    </a>
-                  ))}
-
-                  <div className={styles.startSep} />
-
-                  <div className={styles.startSection}>Find me</div>
-                  {SOCIALS.map((social) => (
-                    <a
-                      key={social.label}
-                      href={social.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.startItem}
-                      role="menuitem"
-                    >
-                      <span className={styles.startItemIcon} aria-hidden="true">
-                        {trayGlyph(social.label)}
-                      </span>
-                      {social.label}
-                    </a>
-                  ))}
-
-                  <div className={styles.startSep} />
-
-                  <a href="/" className={styles.startItem} role="menuitem">
-                    <span
-                      className={`${styles.startItemIcon} ${styles.startItemSymbol}`}
-                      aria-hidden="true"
-                    >
-                      ⟳
-                    </span>
-                    Shuffle theme…
-                  </a>
-                </div>
-              </div>
-            </>
-          )}
-          <button
-            type="button"
-            className={`${styles.start} ${styles.raised} ${
-              startOpen ? styles.startPressed : ""
-            }`}
-            onClick={() => setStartOpen((o) => !o)}
-            aria-haspopup="menu"
-            aria-expanded={startOpen}
-          >
-            <span className={styles.startFlag} aria-hidden="true">
-              <span />
-              <span />
-              <span />
-              <span />
-            </span>
-            Start
-          </button>
-        </div>
-        <span className={`${styles.taskApp} ${styles.raised}`}>
-          <span className={styles.titleIcon} aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-          </span>
-          <span className={styles.taskAppText}>Disk Defragmenter</span>
-        </span>
-
-        <div className={`${styles.tray} ${styles.sunken}`}>
-          <nav className={styles.trayLinks} aria-label="social links">
-            {SOCIALS.map((social) => (
-              <a
-                key={social.label}
-                className={styles.trayLink}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={social.label}
-                style={{ ["--tray-brand"]: trayBrandColor(social.label) } as CSSProperties}
-              >
-                <FontAwesomeIcon className={styles.trayIcon} icon={social.icon} />
-              </a>
-            ))}
-          </nav>
-          <span className={styles.clock} suppressHydrationWarning>
-            {clock}
-          </span>
-        </div>
-      </footer>
+      {/* Shared Win95 taskbar + Start menu */}
+      <Taskbar themeId="defrag" appLabel="Disk Defragmenter" iconVariant="grid" />
     </main>
   );
 }

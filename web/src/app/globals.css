@@ -90,6 +90,22 @@ html[data-theme="defrag"] {
   color-scheme: light;
 }
 
+/* ---- Design: Solitaire (You Win) -------------------------
+   The teal Win95 desktop (matching defrag). The Solitaire
+   application window, the bouncing-card cascade and the dialog
+   chrome live in solitaire.module.css; only the desktop
+   backdrop is needed before first paint. ------------------- */
+html[data-theme="solitaire"] {
+  --background: #008080;
+  --foreground: #ffffff;
+  --muted: #c0c0c0;
+  --muted-strong: #000000;
+  --link: #000080;
+  --link-hover: #1084d0;
+
+  color-scheme: light;
+}
+
 /* ---- Structural reset ------------------------------------ */
 html,
 body {
