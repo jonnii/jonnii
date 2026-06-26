@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import OriginalTheme from "./original/OriginalTheme";
 import StrokesTheme from "./strokes/StrokesTheme";
+import DefragTheme from "./defrag/DefragTheme";
 
 // A theme is a *whole self-contained design*, not a palette. Each one renders
 // the shared content (see ./shared/content) with its own layout, typography
@@ -18,6 +19,7 @@ export interface ThemeDef {
 export const THEMES: ThemeDef[] = [
   { id: "original", label: "Solarized Terminal", Component: OriginalTheme },
   { id: "strokes", label: "Future Present Past", Component: StrokesTheme },
+  { id: "defrag", label: "Disk Defragmenter", Component: DefragTheme },
 ];
 
 export const THEME_IDS: string[] = THEMES.map((t) => t.id);

@@ -75,6 +75,21 @@ html[data-theme="strokes"] {
   color-scheme: light;
 }
 
+/* ---- Design: Defrag (Windows 95 Disk Defragmenter) -------
+   The teal Win95 desktop. The application window, cluster
+   palette and chrome live in defrag.module.css; only the
+   pre-paint backdrop tokens are needed here. ---------------- */
+html[data-theme="defrag"] {
+  --background: #008080;
+  --foreground: #000000;
+  --muted: #c0c0c0;
+  --muted-strong: #000000;
+  --link: #000080;
+  --link-hover: #1084d0;
+
+  color-scheme: light;
+}
+
 /* ---- Structural reset ------------------------------------ */
 html,
 body {
