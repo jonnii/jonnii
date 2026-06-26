@@ -183,7 +183,7 @@
 }
 .map {
   display: grid;
-  --block-w: clamp(4px, calc((94vw - 150px) / var(--cols)), 12px);
+  --block-w: clamp(4px, calc((min(94vw, 720px) - 96px) / var(--cols)), 14px);
   grid-template-columns: repeat(var(--cols), var(--block-w));
   gap: 1px;
   width: fit-content;
