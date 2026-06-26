@@ -1,5 +1,6 @@
 "use client";
 import styles from "./defrag.module.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   useEffect,
   useMemo,
@@ -21,6 +22,8 @@ const COLS = 48;
 const ROWS = 22;
 const CELL_COUNT = COLS * ROWS;
 const ACTIVE_BAND = 6;
+const EMPTY_PCT = 0.18;
+const SYSTEM_PCT = 0.015;
 
 // The Win95 progress bar fills in discrete blocks, not a smooth slide.
 const PROGRESS_SEGMENTS = 24;
@@ -71,12 +74,10 @@ function buildWordMask(): Set<number> {
   return mask;
 }
 
-type CellType = "darkA" | "darkB";
+type CellType = "empty" | "regular" | "system";
 
 interface Cell {
   type: CellType;
-  col: number;
-  jitter: number;
   isWord: boolean;
 }
 
@@ -84,16 +85,21 @@ function buildCells(): Cell[] {
   const mask = buildWordMask();
   const cells: Cell[] = [];
   for (let i = 0; i < CELL_COUNT; i++) {
-    const type: CellType = hash(i * 7 + 1) < 0.78 ? "darkA" : "darkB";
+    const r = hash(i * 7 + 1);
+    let type: CellType = "regular";
+    if (r < SYSTEM_PCT) type = "system";
+    else if (r < SYSTEM_PCT + EMPTY_PCT) type = "empty";
     const isWord = mask.has(i);
-    cells.push({ type, col: i % COLS, jitter: hash(i * 13 + 3) * 0.6, isWord });
+    if (isWord) type = "regular";
+    cells.push({ type, isWord });
   }
   return cells;
 }
 
 const cellClass: Record<CellType, string> = {
-  darkA: `${styles.pending} ${styles.pendingA}`,
-  darkB: `${styles.pending} ${styles.pendingB}`,
+  empty: styles.empty,
+  regular: styles.regular,
+  system: styles.system,
 };
 
 function trayGlyph(label: string): string {
@@ -101,6 +107,13 @@ function trayGlyph(label: string): string {
   if (label === "GitHub") return "gh";
   if (label.startsWith("X")) return "x";
   return label.slice(0, 2).toLowerCase();
+}
+
+function trayBrandColor(label: string): string {
+  if (label === "LinkedIn") return "#0a66c2";
+  if (label === "GitHub") return "#181717";
+  if (label.startsWith("X")) return "#000000";
+  return "var(--w95-dk)";
 }
 
 function statusFor(pct: number): string {
@@ -120,10 +133,17 @@ export default function DefragTheme() {
   // Counter clamped to 100 for display; it runs past 100 to hold the finished
   // "optimized" state (so the assembled word is appreciable) before restarting.
   const shown = Math.min(pct, 100);
-  // The defrag head advances through the grid in reading order (top-left ->
-  // bottom-right). Cells behind it are defragmented cyan; cells under the head
-  // are the active red band; cells ahead stay dark blue.
+  // The defrag head scans for empty holes from the front of the disk. Behind it,
+  // movable data has been relocated into those holes (blue). Ahead of it, regular
+  // data remains cyan; selected source blocks flash green while partial writes
+  // fill the current hole in red. System blocks stay fixed.
   const head = Math.floor((shown / 100) * CELL_COUNT);
+  const sourceStart =
+    head < CELL_COUNT - ACTIVE_BAND
+      ? head +
+        ACTIVE_BAND +
+        Math.floor(hash(pct + 9) * Math.max(1, CELL_COUNT - head - ACTIVE_BAND))
+      : CELL_COUNT;
 
   // The defrag "pass": ticks 0 -> 100 slowly, holds done briefly, then starts over.
   useEffect(() => {
@@ -219,23 +239,23 @@ export default function DefragTheme() {
               className={styles.map}
               role="img"
               aria-label="Disk cluster map, defragmenting"
-              style={{ ["--map-T"]: "7.5s" } as CSSProperties}
             >
               {cells.map((c, i) => {
                 let state = "";
-                if (i < head) {
-                  state = c.isWord ? styles.wordBlock : styles.defragged;
-                } else if (i < Math.min(head + ACTIVE_BAND, CELL_COUNT)) {
-                  state = styles.inProgress;
+                if (c.type !== "system") {
+                  if (i < head) {
+                    state = c.isWord ? styles.wordBlock : styles.moved;
+                  } else if (i < Math.min(head + ACTIVE_BAND, CELL_COUNT)) {
+                    state = styles.partial;
+                  } else if (i >= sourceStart && i < Math.min(sourceStart + ACTIVE_BAND, CELL_COUNT)) {
+                    state = styles.selected;
+                  }
                 }
-                // else: ahead of the head — keep the dark, not-yet-defragged look.
+                // else: ahead of the head — keep the original disk composition.
                 return (
                   <span
                     key={i}
                     className={`${styles.cell} ${cellClass[c.type]} ${state}`}
-                    style={
-                      { ["--col"]: c.col, ["--j"]: c.jitter } as CSSProperties
-                    }
                   />
                 );
               })}
@@ -245,13 +265,19 @@ export default function DefragTheme() {
           {/* Legend */}
           <div className={styles.legend}>
             <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchPending}`} /> Not defragmented
+              <span className={`${styles.swatch} ${styles.swatchRegular}`} /> Regular
             </span>
             <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchProgress}`} /> In progress
+              <span className={`${styles.swatch} ${styles.swatchMoved}`} /> Moved
             </span>
             <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchDefragged}`} /> Defragmented
+              <span className={`${styles.swatch} ${styles.swatchSelected}`} /> Selected
+            </span>
+            <span className={styles.legendItem}>
+              <span className={`${styles.swatch} ${styles.swatchPartial}`} /> Partial
+            </span>
+            <span className={styles.legendItem}>
+              <span className={`${styles.swatch} ${styles.swatchSystem}`} /> System
             </span>
           </div>
 
@@ -408,10 +434,9 @@ export default function DefragTheme() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={social.label}
+                style={{ ["--tray-brand"]: trayBrandColor(social.label) } as CSSProperties}
               >
-                <span className={styles.trayGlyph} aria-hidden="true">
-                  {trayGlyph(social.label)}
-                </span>
+                <FontAwesomeIcon className={styles.trayIcon} icon={social.icon} />
               </a>
             ))}
           </nav>

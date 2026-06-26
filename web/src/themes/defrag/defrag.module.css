@@ -21,11 +21,13 @@
   --w95-navy: #000080;
   --w95-navy2: #1084d0;
 
-  --cell-pending-a: #000080;
-  --cell-pending-b: #0505a8;
-  --cell-defragged: #00ffff;
-  --cell-progress: #ff0000;
-  --cell-word: #a8ffff;
+  --cell-empty: #ffffff;
+  --cell-regular: #00ffff;
+  --cell-system: #ffffff;
+  --cell-moved: #0000ff;
+  --cell-selected: #00ff00;
+  --cell-partial: #ff0000;
+  --cell-word: #6666ff;
 
   position: relative;
   isolation: isolate;
@@ -92,10 +94,10 @@
 .titleIcon span {
   display: block;
 }
-.titleIcon span:nth-child(1) { background: var(--cell-pending-a); }
-.titleIcon span:nth-child(2) { background: var(--cell-defragged); }
-.titleIcon span:nth-child(3) { background: var(--cell-progress); }
-.titleIcon span:nth-child(4) { background: var(--cell-pending-b); }
+.titleIcon span:nth-child(1) { background: var(--cell-moved); }
+.titleIcon span:nth-child(2) { background: var(--cell-regular); }
+.titleIcon span:nth-child(3) { background: var(--cell-partial); }
+.titleIcon span:nth-child(4) { background: var(--cell-selected); }
 
 .titleText {
   flex: 1 1 auto;
@@ -165,49 +167,78 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--cell-progress);
+  background: var(--cell-partial);
   box-shadow: 0 0 0 1px var(--w95-dk);
   animation: blink 1s steps(1) infinite;
 }
 
 /* ----- Cluster map ---------------------------------------- */
 .mapWrap {
-  padding: 6px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 3px;
+  margin: 0 auto;
+  background: var(--cell-empty);
+  overflow: visible;
 }
 .map {
   display: grid;
-  grid-template-columns: repeat(var(--cols), 1fr);
+  --block-w: clamp(4px, calc((94vw - 150px) / var(--cols)), 12px);
+  grid-template-columns: repeat(var(--cols), var(--block-w));
   gap: 1px;
-  background: var(--w95-lo);
-  border: 1px solid var(--w95-lo);
+  width: fit-content;
+  background: var(--cell-empty);
+  border: 0;
+  image-rendering: pixelated;
 }
 .cell {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background: var(--cell-pending-a);
+  width: var(--block-w);
+  aspect-ratio: 7 / 9;
+  position: relative;
+  background: var(--cell-empty);
+  box-shadow: inset 0 0 0 1px var(--w95-dk);
 }
-.pending {
-  background: var(--cell-pending);
-  animation: pendingPulse var(--map-T) steps(1) infinite;
-  animation-delay: calc((var(--col) + var(--j)) * -0.07s);
+.regular {
+  background: var(--cell-regular);
 }
-.pendingA { --cell-pending: var(--cell-pending-a); --cell-pending-alt: var(--cell-pending-b); }
-.pendingB { --cell-pending: var(--cell-pending-b); --cell-pending-alt: var(--cell-pending-a); }
+.empty { background: var(--cell-empty); }
+.system {
+  background: var(--cell-system);
+}
+.system::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: calc(50% - 1px);
+  height: calc(50% - 1px);
+  background: var(--cell-partial);
+}
 
-/* Defrag consolidation. The head sweeps through the grid in reading order:
-   dark blue pending blocks become cyan defragmented blocks, while a red active
-   band marks the work currently in progress. */
-.cell.defragged {
-  animation: none;
-  background: var(--cell-defragged);
+/* Defrag simulation states, matching the reference model: cyan regular data is
+   selected from later in the disk, red marks partial writes into empty holes,
+   and blue marks data already moved into place. System blocks remain fixed. */
+.cell.moved {
+  background:
+    repeating-conic-gradient(
+      var(--cell-regular) 0 25%,
+      var(--cell-moved) 0 50%
+    )
+    0 0 / 2px 2px;
 }
 .cell.wordBlock {
-  animation: none;
-  background: var(--cell-word);
+  background:
+    repeating-conic-gradient(
+      var(--cell-word) 0 25%,
+      var(--cell-moved) 0 50%
+    )
+    0 0 / 2px 2px;
 }
-.cell.inProgress {
-  animation: none;
-  background: var(--cell-progress);
+.cell.selected {
+  background: var(--cell-selected);
+}
+.cell.partial {
+  background: var(--cell-partial);
 }
 
 /* ----- Legend --------------------------------------------- */
@@ -223,13 +254,34 @@
   gap: 6px;
 }
 .swatch {
-  width: 13px;
-  height: 13px;
-  box-shadow: 0 0 0 1px var(--w95-dk);
+  width: 14px;
+  height: 18px;
+  box-shadow: inset 0 0 0 1px var(--w95-dk);
 }
-.swatchPending { background: var(--cell-pending-a); }
-.swatchProgress { background: var(--cell-progress); }
-.swatchDefragged { background: var(--cell-defragged); }
+.swatchRegular { background: var(--cell-regular); }
+.swatchMoved {
+  background:
+    repeating-conic-gradient(
+      var(--cell-regular) 0 25%,
+      var(--cell-moved) 0 50%
+    )
+    0 0 / 2px 2px;
+}
+.swatchSelected { background: var(--cell-selected); }
+.swatchPartial { background: var(--cell-partial); }
+.swatchSystem {
+  position: relative;
+  background: var(--cell-system);
+}
+.swatchSystem::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: calc(50% - 1px);
+  height: calc(50% - 1px);
+  background: var(--cell-partial);
+}
 
 /* ----- Progress ------------------------------------------- */
 .progressRow {
@@ -499,37 +551,34 @@
 }
 .trayLinks {
   display: flex;
-  gap: 4px;
+  gap: 5px;
 }
 .trayLink {
   display: grid;
   place-items: center;
-  width: 18px;
+  width: 20px;
   height: 18px;
-  color: var(--w95-dk);
+  color: var(--tray-brand, var(--w95-dk));
+  border: 1px solid;
+  border-color: var(--w95-hi) var(--w95-lo) var(--w95-lo) var(--w95-hi);
+  background: var(--w95-soft);
+  box-shadow: inset -1px -1px 0 var(--w95-face);
   text-decoration: none;
 }
-.trayLink:hover .trayGlyph {
+.trayLink:hover {
   background: var(--w95-hi);
+}
+.trayLink:active {
+  border-color: var(--w95-lo) var(--w95-hi) var(--w95-hi) var(--w95-lo);
+  box-shadow: inset 1px 1px 0 var(--w95-face);
 }
 .trayLink:focus-visible {
   outline: 1px dotted var(--w95-dk);
   outline-offset: 1px;
 }
-.trayGlyph {
-  width: 16px;
-  height: 16px;
-  display: grid;
-  place-items: center;
-  border: 1px solid;
-  border-color: var(--w95-hi) var(--w95-lo) var(--w95-lo) var(--w95-hi);
-  background: var(--w95-soft);
-  box-shadow: inset -1px -1px 0 var(--w95-face);
-  font-family: Tahoma, "MS Sans Serif", Geneva, Verdana, sans-serif;
-  font-size: 7px;
-  font-weight: 700;
-  line-height: 1;
-  text-transform: uppercase;
+.trayIcon {
+  width: 12px;
+  height: 12px;
 }
 .clock {
   font-size: 12px;
@@ -551,11 +600,6 @@
 }
 
 /* ----- Motion --------------------------------------------- */
-@keyframes pendingPulse {
-  0%, 72% { background: var(--cell-pending); }
-  73%, 80% { background: var(--cell-pending-alt); }
-  81%, 100% { background: var(--cell-pending); }
-}
 @keyframes blink {
   0%, 60% { opacity: 1; }
   61%, 100% { opacity: 0.25; }
@@ -567,7 +611,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .window { animation: none; }
-  .pending { animation: none; }
   .statusDot { animation: none; }
   .startMenu { animation: none; }
 }
