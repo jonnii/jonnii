@@ -21,14 +21,11 @@
   --w95-navy: #000080;
   --w95-navy2: #1084d0;
 
-  --cell-blue-a: #101088;
-  --cell-blue-b: #3a48d8;
-  --cell-free: #ffffff;
-  --cell-unmov: #888888;
-  --cell-read: #00a800;
-  --cell-write: #d81010;
-  --cell-packed: #14149c; /* optimized, contiguous data */
-  --cell-inlay: #6b7fe6; /* the wordmark, a lighter blue within the packed blue */
+  --cell-pending-a: #000080;
+  --cell-pending-b: #0505a8;
+  --cell-defragged: #00ffff;
+  --cell-progress: #ff0000;
+  --cell-word: #a8ffff;
 
   position: relative;
   isolation: isolate;
@@ -95,10 +92,10 @@
 .titleIcon span {
   display: block;
 }
-.titleIcon span:nth-child(1) { background: var(--cell-blue-a); }
-.titleIcon span:nth-child(2) { background: var(--cell-read); }
-.titleIcon span:nth-child(3) { background: var(--cell-write); }
-.titleIcon span:nth-child(4) { background: var(--cell-blue-b); }
+.titleIcon span:nth-child(1) { background: var(--cell-pending-a); }
+.titleIcon span:nth-child(2) { background: var(--cell-defragged); }
+.titleIcon span:nth-child(3) { background: var(--cell-progress); }
+.titleIcon span:nth-child(4) { background: var(--cell-pending-b); }
 
 .titleText {
   flex: 1 1 auto;
@@ -168,7 +165,7 @@
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--cell-read);
+  background: var(--cell-progress);
   box-shadow: 0 0 0 1px var(--w95-dk);
   animation: blink 1s steps(1) infinite;
 }
@@ -187,44 +184,30 @@
 .cell {
   width: 100%;
   aspect-ratio: 1 / 1;
-  background: var(--cell-free);
+  background: var(--cell-pending-a);
 }
-.used {
-  animation: sweep var(--map-T) linear infinite;
+.pending {
+  background: var(--cell-pending);
+  animation: pendingPulse var(--map-T) steps(1) infinite;
   animation-delay: calc((var(--col) + var(--j)) * -0.07s);
 }
-.usedA { --cell-blue: var(--cell-blue-a); background: var(--cell-blue-a); }
-.usedB { --cell-blue: var(--cell-blue-b); background: var(--cell-blue-b); }
-.free { background: var(--cell-free); }
-.unmov { background: var(--cell-unmov); }
+.pendingA { --cell-pending: var(--cell-pending-a); --cell-pending-alt: var(--cell-pending-b); }
+.pendingB { --cell-pending: var(--cell-pending-b); --cell-pending-alt: var(--cell-pending-a); }
 
-/* Defrag consolidation. The head sweeps through the grid in reading order
-   (top-left -> bottom-right). Behind it the disk is optimized: used data packs
-   into solid blue bands (.packed), free space collects in the tail (.freeTail),
-   and the wordmark surfaces as a lighter-blue inlay (.inlay). At the head, a
-   cluster is read (.read) from somewhere ahead and written (.write) into place.
-   Ahead of the head, cells keep their scattered look + flicker. Compound
-   selectors + animation:none let these static fills beat the running sweep
-   (a running animation otherwise outranks normal declarations in the cascade). */
-.cell.packed {
+/* Defrag consolidation. The head sweeps through the grid in reading order:
+   dark blue pending blocks become cyan defragmented blocks, while a red active
+   band marks the work currently in progress. */
+.cell.defragged {
   animation: none;
-  background: var(--cell-packed);
+  background: var(--cell-defragged);
 }
-.cell.inlay {
+.cell.wordBlock {
   animation: none;
-  background: var(--cell-inlay);
+  background: var(--cell-word);
 }
-.cell.freeTail {
+.cell.inProgress {
   animation: none;
-  background: var(--cell-free);
-}
-.cell.read {
-  animation: none;
-  background: var(--cell-read);
-}
-.cell.write {
-  animation: none;
-  background: var(--cell-write);
+  background: var(--cell-progress);
 }
 
 /* ----- Legend --------------------------------------------- */
@@ -244,11 +227,9 @@
   height: 13px;
   box-shadow: 0 0 0 1px var(--w95-dk);
 }
-.swatchUsed { background: var(--cell-blue-a); }
-.swatchFree { background: var(--cell-free); }
-.swatchRead { background: var(--cell-read); }
-.swatchWrite { background: var(--cell-write); }
-.swatchUnmov { background: var(--cell-unmov); }
+.swatchPending { background: var(--cell-pending-a); }
+.swatchProgress { background: var(--cell-progress); }
+.swatchDefragged { background: var(--cell-defragged); }
 
 /* ----- Progress ------------------------------------------- */
 .progressRow {
@@ -459,7 +440,19 @@
   height: 16px;
   display: inline-grid;
   place-items: center;
-  font-size: 14px;
+  border: 1px solid;
+  border-color: var(--w95-hi) var(--w95-lo) var(--w95-lo) var(--w95-hi);
+  background: var(--w95-soft);
+  box-shadow: inset -1px -1px 0 var(--w95-face);
+  font-family: Tahoma, "MS Sans Serif", Geneva, Verdana, sans-serif;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.startItemSymbol {
+  font-size: 12px;
+  text-transform: none;
 }
 .startBullet {
   width: 16px;
@@ -506,23 +499,37 @@
 }
 .trayLinks {
   display: flex;
-  gap: 8px;
+  gap: 4px;
 }
 .trayLink {
   display: grid;
   place-items: center;
-  width: 22px;
+  width: 18px;
   height: 18px;
   color: var(--w95-dk);
+  text-decoration: none;
 }
-.trayLink:hover { color: var(--w95-navy); }
+.trayLink:hover .trayGlyph {
+  background: var(--w95-hi);
+}
 .trayLink:focus-visible {
   outline: 1px dotted var(--w95-dk);
   outline-offset: 1px;
 }
-.trayIcon {
-  width: 15px;
-  height: 15px;
+.trayGlyph {
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  border: 1px solid;
+  border-color: var(--w95-hi) var(--w95-lo) var(--w95-lo) var(--w95-hi);
+  background: var(--w95-soft);
+  box-shadow: inset -1px -1px 0 var(--w95-face);
+  font-family: Tahoma, "MS Sans Serif", Geneva, Verdana, sans-serif;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
 }
 .clock {
   font-size: 12px;
@@ -544,11 +551,10 @@
 }
 
 /* ----- Motion --------------------------------------------- */
-@keyframes sweep {
-  0%, 70% { background: var(--cell-blue); }
-  76% { background: var(--cell-read); }
-  84% { background: var(--cell-write); }
-  90%, 100% { background: var(--cell-blue); }
+@keyframes pendingPulse {
+  0%, 72% { background: var(--cell-pending); }
+  73%, 80% { background: var(--cell-pending-alt); }
+  81%, 100% { background: var(--cell-pending); }
 }
 @keyframes blink {
   0%, 60% { opacity: 1; }
@@ -561,7 +567,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .window { animation: none; }
-  .used { animation: none; }
+  .pending { animation: none; }
   .statusDot { animation: none; }
   .startMenu { animation: none; }
 }

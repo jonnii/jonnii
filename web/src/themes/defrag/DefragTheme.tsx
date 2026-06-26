@@ -1,6 +1,5 @@
 "use client";
 import styles from "./defrag.module.css";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   useEffect,
   useMemo,
@@ -18,15 +17,10 @@ const THEME_ID = "defrag";
 
 // Cluster map dimensions — a dense grid of "disk clusters", like the real
 // Disk Defragmenter's drive map.
-const COLS = 30;
-const ROWS = 15;
+const COLS = 48;
+const ROWS = 22;
 const CELL_COUNT = COLS * ROWS;
-
-// When a pass finishes, used data is packed contiguously into the top rows and
-// free space collects in the tail. This is the first cell of that free tail (in
-// reading order). Kept below the wordmark band (rows 3–11) so the word always
-// lands inside the packed blue, never in the cleared tail.
-const TAIL_START = 12 * COLS;
+const ACTIVE_BAND = 6;
 
 // The Win95 progress bar fills in discrete blocks, not a smooth slide.
 const PROGRESS_SEGMENTS = 24;
@@ -42,11 +36,11 @@ function hash(n: number): number {
 }
 
 // Easter egg: a 9-row bitmap font for the letters in the wordmark. The cells
-// these glyphs cover are camouflaged as ordinary blue clusters while scattered,
-// then settle to a lighter-blue inlay once the defrag head packs over them.
+// these glyphs cover are camouflaged as ordinary dark clusters while scattered,
+// then settle into the cyan defragmented field as the head passes over them.
 const GLYPH_H = 9;
 const GLYPH_GAP = 1;
-const WORD_TOP = 3; // top grid row of the glyph band (9 rows tall, centered in 15)
+const WORD_TOP = 6; // top grid row of the glyph band (9 rows tall, centered in 22)
 const GLYPHS: Record<string, string[]> = {
   j: ["..#", "...", "..#", "..#", "..#", "..#", "..#", "..#", "##."],
   o: ["....", "....", ".##.", "#..#", "#..#", "#..#", ".##.", "....", "...."],
@@ -77,7 +71,7 @@ function buildWordMask(): Set<number> {
   return mask;
 }
 
-type CellType = "free" | "unmov" | "usedA" | "usedB";
+type CellType = "darkA" | "darkB";
 
 interface Cell {
   type: CellType;
@@ -90,28 +84,24 @@ function buildCells(): Cell[] {
   const mask = buildWordMask();
   const cells: Cell[] = [];
   for (let i = 0; i < CELL_COUNT; i++) {
-    const r = hash(i);
-    let type: CellType;
-    if (r < 0.12) type = "free";
-    else if (r < 0.17) type = "unmov";
-    else type = hash(i * 7 + 1) < 0.5 ? "usedA" : "usedB";
+    const type: CellType = hash(i * 7 + 1) < 0.78 ? "darkA" : "darkB";
     const isWord = mask.has(i);
-    // Word cells must read as blue clusters so the word stays hidden until the
-    // reveal — never let a glyph cell be white (free) or gray (unmovable).
-    if (isWord && (type === "free" || type === "unmov")) {
-      type = hash(i * 7 + 1) < 0.5 ? "usedA" : "usedB";
-    }
     cells.push({ type, col: i % COLS, jitter: hash(i * 13 + 3) * 0.6, isWord });
   }
   return cells;
 }
 
 const cellClass: Record<CellType, string> = {
-  free: styles.free,
-  unmov: styles.unmov,
-  usedA: `${styles.used} ${styles.usedA}`,
-  usedB: `${styles.used} ${styles.usedB}`,
+  darkA: `${styles.pending} ${styles.pendingA}`,
+  darkB: `${styles.pending} ${styles.pendingB}`,
 };
+
+function trayGlyph(label: string): string {
+  if (label === "LinkedIn") return "in";
+  if (label === "GitHub") return "gh";
+  if (label.startsWith("X")) return "x";
+  return label.slice(0, 2).toLowerCase();
+}
 
 function statusFor(pct: number): string {
   if (pct >= 100) return "Defragmentation of Drive C is complete.";
@@ -122,7 +112,6 @@ function statusFor(pct: number): string {
 export default function DefragTheme() {
   const cells = useMemo(buildCells, []);
   const [pct, setPct] = useState(0);
-  const [hovered, setHovered] = useState(false);
   const [clock, setClock] = useState("");
   const [copied, setCopied] = useState(false);
   const [startOpen, setStartOpen] = useState(false);
@@ -132,23 +121,16 @@ export default function DefragTheme() {
   // "optimized" state (so the assembled word is appreciable) before restarting.
   const shown = Math.min(pct, 100);
   // The defrag head advances through the grid in reading order (top-left ->
-  // bottom-right). Cells behind it are optimized (data packed into solid blue,
-  // free space in the tail, the wordmark as a lighter-blue inlay); cells ahead
-  // stay scattered and flickering. Hovering the map jumps straight to optimized.
-  const head = hovered ? CELL_COUNT : Math.floor((shown / 100) * CELL_COUNT);
-  // A far cluster being read while the head writes — the classic read/write
-  // "pair". It hops around the not-yet-packed region as the pass ticks.
-  const source =
-    head < CELL_COUNT - 1
-      ? head + 1 + Math.floor(hash(pct + 1) * (CELL_COUNT - head - 1))
-      : -1;
+  // bottom-right). Cells behind it are defragmented cyan; cells under the head
+  // are the active red band; cells ahead stay dark blue.
+  const head = Math.floor((shown / 100) * CELL_COUNT);
 
-  // The defrag "pass": ticks 0 -> 100, holds done for ~1.5s, then starts over.
+  // The defrag "pass": ticks 0 -> 100 slowly, holds done briefly, then starts over.
   useEffect(() => {
     const HOLD_TICKS = 12;
     const id = window.setInterval(() => {
       setPct((p) => (p >= 100 + HOLD_TICKS ? 0 : p + 1));
-    }, 130);
+    }, 320);
     return () => window.clearInterval(id);
   }, []);
 
@@ -237,30 +219,16 @@ export default function DefragTheme() {
               className={styles.map}
               role="img"
               aria-label="Disk cluster map, defragmenting"
-              style={{ ["--map-T"]: "2.4s" } as CSSProperties}
-              onMouseEnter={() => setHovered(true)}
-              onMouseLeave={() => setHovered(false)}
+              style={{ ["--map-T"]: "7.5s" } as CSSProperties}
             >
               {cells.map((c, i) => {
-                // Unmovable clusters are fixed obstacles — gray everywhere, both
-                // scattered and packed (data flows around them).
                 let state = "";
-                if (c.type === "unmov") {
-                  state = "";
-                } else if (i === head) {
-                  state = styles.write; // destination being written
-                } else if (i === source) {
-                  state = styles.read; // far source being read
-                } else if (i < head) {
-                  // Optimized region.
-                  state =
-                    i >= TAIL_START
-                      ? styles.freeTail
-                      : c.isWord
-                      ? styles.inlay
-                      : styles.packed;
+                if (i < head) {
+                  state = c.isWord ? styles.wordBlock : styles.defragged;
+                } else if (i < Math.min(head + ACTIVE_BAND, CELL_COUNT)) {
+                  state = styles.inProgress;
                 }
-                // else: ahead of the head — keep the scattered look + flicker.
+                // else: ahead of the head — keep the dark, not-yet-defragged look.
                 return (
                   <span
                     key={i}
@@ -277,19 +245,13 @@ export default function DefragTheme() {
           {/* Legend */}
           <div className={styles.legend}>
             <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchUsed}`} /> Used
+              <span className={`${styles.swatch} ${styles.swatchPending}`} /> Not defragmented
             </span>
             <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchFree}`} /> Free space
+              <span className={`${styles.swatch} ${styles.swatchProgress}`} /> In progress
             </span>
             <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchRead}`} /> Reading
-            </span>
-            <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchWrite}`} /> Writing
-            </span>
-            <span className={styles.legendItem}>
-              <span className={`${styles.swatch} ${styles.swatchUnmov}`} /> Unmovable
+              <span className={`${styles.swatch} ${styles.swatchDefragged}`} /> Defragmented
             </span>
           </div>
 
@@ -386,10 +348,9 @@ export default function DefragTheme() {
                       className={styles.startItem}
                       role="menuitem"
                     >
-                      <FontAwesomeIcon
-                        className={styles.startItemIcon}
-                        icon={social.icon}
-                      />
+                      <span className={styles.startItemIcon} aria-hidden="true">
+                        {trayGlyph(social.label)}
+                      </span>
                       {social.label}
                     </a>
                   ))}
@@ -397,7 +358,10 @@ export default function DefragTheme() {
                   <div className={styles.startSep} />
 
                   <a href="/" className={styles.startItem} role="menuitem">
-                    <span className={styles.startItemIcon} aria-hidden="true">
+                    <span
+                      className={`${styles.startItemIcon} ${styles.startItemSymbol}`}
+                      aria-hidden="true"
+                    >
                       ⟳
                     </span>
                     Shuffle theme…
@@ -445,7 +409,9 @@ export default function DefragTheme() {
                 rel="noopener noreferrer"
                 aria-label={social.label}
               >
-                <FontAwesomeIcon className={styles.trayIcon} icon={social.icon} />
+                <span className={styles.trayGlyph} aria-hidden="true">
+                  {trayGlyph(social.label)}
+                </span>
               </a>
             ))}
           </nav>
