@@ -478,14 +478,6 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .window,
-  .dialog,
-  .menu {
-    animation: none;
-  }
-}
-
 /* ----- Mobile --------------------------------------------- */
 @media (max-width: 560px) {
   .desktop {

@@ -50,7 +50,6 @@ export default function OriginalTheme() {
 
   // Slowly march the highlighted diagonal across the wordmark
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = window.setInterval(
       () => setDiagonalOffset((offset) => (offset + 1) % WORD.length),
       DIAGONAL_STEP_MS

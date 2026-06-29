@@ -318,10 +318,6 @@
   border: 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .startMenu { animation: none; }
-}
-
 @media (max-width: 560px) {
   .taskApp { display: none; }
 }
