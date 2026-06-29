@@ -225,22 +225,6 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .footer,
-  .bar,
-  .letter {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-  .bar {
-    transform: scaleY(1);
-  }
-  .letter {
-    transform: scaleY(1.55);
-  }
-}
-
 /* ----- Mobile --------------------------------------------- */
 @media (max-width: 640px) {
   .word {

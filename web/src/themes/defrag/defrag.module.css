@@ -393,11 +393,6 @@
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .window { animation: none; }
-  .statusDot { animation: none; }
-}
-
 /* ----- Mobile --------------------------------------------- */
 @media (max-width: 560px) {
   .desktop { font-size: 12px; }

@@ -54,8 +54,6 @@ export default function CardCascade({ onDeal }: { onDeal?: () => void }) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
     // The cascade is confined to its host element (the window's felt body), so it
     // measures that, not the whole viewport.
     const host = canvas.parentElement;
@@ -235,15 +233,6 @@ export default function CardCascade({ onDeal }: { onDeal?: () => void }) {
       live.length = 0;
       sinceLaunch = STAGGER_MS; // launch the first card immediately
       acc = 0;
-
-      if (reduced) {
-        // Honour reduced-motion: paint a tidy "you won" board instead of bouncing.
-        drawFoundations();
-        for (let i = 0; i < SUITS; i++) {
-          drawCard(i * CARD_W, 0 /* the four aces */, slots[i], LAUNCH_TOP);
-        }
-        return;
-      }
 
       drawFoundations();
       last = performance.now();

@@ -34,7 +34,6 @@ export default function CapsuleBurst() {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const computed = getComputedStyle(document.documentElement);
     const palette = PALETTE_VARS.map((v) => computed.getPropertyValue(v).trim()).filter(Boolean);

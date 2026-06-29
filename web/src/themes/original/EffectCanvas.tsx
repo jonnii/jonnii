@@ -69,8 +69,6 @@ export default function EffectCanvas() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
     const computed = getComputedStyle(document.documentElement);
     const palette = PALETTE_VARS.map((v) => computed.getPropertyValue(v).trim()).filter(Boolean);
     if (palette.length === 0) palette.push("#268bd2");
@@ -251,7 +249,6 @@ export default function EffectCanvas() {
     };
 
     const trigger = (x: number, y: number, kindPool: EffectKind[]) => {
-      if (reducedMotion) return;
       // Never repeat the previous effect, so consecutive clicks always differ
       const candidates = kindPool.filter((k) => k !== lastKind);
       const kind = candidates[Math.floor(Math.random() * candidates.length)] ?? kindPool[0];

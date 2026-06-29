@@ -305,17 +305,6 @@
   height: 24px;
 }
 
-/* Reduced motion: keep color feedback, drop movement */
-@media (prefers-reduced-motion: reduce) {
-  .effectWave:hover .letter,
-  .effectTilt:hover .letter,
-  .effectJelly:hover .letter,
-  .effectSkew:hover .letter,
-  .effectBlur:hover .letter {
-    animation: none;
-  }
-}
-
 /* Mobile breakpoint */
 @media (max-width: 640px) {
   .container {
