@@ -95,6 +95,26 @@
   color: var(--w95-dk);
 }
 
+.mineIcon {
+  position: relative;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  background: #c0c0c0;
+}
+/* A little black mine: a dot with four spikes and a white glint */
+.mineIcon i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #000;
+  box-shadow:
+    0 -5px 0 -3px #000, 0 5px 0 -3px #000, -5px 0 0 -3px #000, 5px 0 0 -3px #000,
+    inset 2px 2px 0 -1px #fff;
+}
+
 /* ----- Start button --------------------------------------- */
 .startWrap {
   position: relative;

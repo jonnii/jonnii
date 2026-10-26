@@ -3,6 +3,7 @@ import OriginalTheme from "./original/OriginalTheme";
 import StrokesTheme from "./strokes/StrokesTheme";
 import DefragTheme from "./defrag/DefragTheme";
 import SolitaireTheme from "./solitaire/SolitaireTheme";
+import MinesweeperTheme from "./minesweeper/MinesweeperTheme";
 
 // A theme is a *whole self-contained design*, not a palette. Each one renders
 // the shared content (see ./shared/content) with its own layout, typography
@@ -22,6 +23,7 @@ export const THEMES: ThemeDef[] = [
   { id: "strokes", label: "Future Present Past", Component: StrokesTheme },
   { id: "defrag", label: "Disk Defragmenter", Component: DefragTheme },
   { id: "solitaire", label: "Solitaire (You Win)", Component: SolitaireTheme },
+  { id: "minesweeper", label: "Minesweeper", Component: MinesweeperTheme },
 ];
 
 export const THEME_IDS: string[] = THEMES.map((t) => t.id);
