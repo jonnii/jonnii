@@ -21,4 +21,5 @@ export const DESIGNS: Record<ThemeId, ComponentType> = {
     loading: Loading,
   }),
   skifree: dynamic(() => import("./skifree/SkiFreeTheme"), { ssr: false, loading: Loading }),
+  teletext: dynamic(() => import("./teletext/TeletextTheme"), { ssr: false, loading: Loading }),
 };
