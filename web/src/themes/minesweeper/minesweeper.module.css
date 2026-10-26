@@ -1,0 +1,391 @@
+/* ============================================================
+   Theme: Minesweeper — "Windows 95 Minesweeper"
+   A teal desktop with the classic Minesweeper window: red LED
+   counters, the smiley, and a beveled minefield whose mines
+   are the pixels of the wordmark. The board auto-plays on load
+   and flags the word; click to take over, right-click to flag.
+   Backdrop tokens (teal desktop) live in globals.css so the
+   <head> script can paint them before first paint.
+   ============================================================ */
+
+.desktop {
+  --w95-face: #c0c0c0;
+  --w95-hi: #ffffff;
+  --w95-lo: #808080;
+  --w95-dk: #000000;
+  --w95-soft: #dfdfdf;
+  --w95-navy: #000080;
+  --w95-navy2: #1084d0;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100svh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(12px, 3vw, 40px);
+  padding-bottom: clamp(64px, 9vh, 88px); /* room for the taskbar */
+  overflow: hidden;
+  font-family: Tahoma, "MS Sans Serif", Geneva, Verdana, sans-serif;
+  font-size: 13px;
+  color: var(--w95-dk);
+  background: var(--background);
+  -webkit-font-smoothing: none;
+  user-select: none;
+}
+
+/* ----- Reusable Win95 bevels ------------------------------ */
+.raised {
+  background: var(--w95-face);
+  border: 2px solid;
+  border-color: var(--w95-hi) var(--w95-dk) var(--w95-dk) var(--w95-hi);
+  box-shadow: inset 1px 1px 0 var(--w95-soft), inset -1px -1px 0 var(--w95-lo);
+}
+
+.sunken {
+  background: var(--w95-hi);
+  border: 2px solid;
+  border-color: var(--w95-lo) var(--w95-hi) var(--w95-hi) var(--w95-lo);
+  box-shadow: inset 1px 1px 0 var(--w95-dk), inset -1px -1px 0 var(--w95-soft);
+}
+
+/* Minesweeper's own gray-on-gray insets */
+.sunkenThin {
+  border: 2px solid;
+  border-color: var(--w95-lo) var(--w95-hi) var(--w95-hi) var(--w95-lo);
+}
+.sunkenThick {
+  border: 3px solid;
+  border-color: var(--w95-lo) var(--w95-hi) var(--w95-hi) var(--w95-lo);
+}
+
+/* ----- The application window ----------------------------- */
+.window {
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+  max-width: 96vw;
+  padding: 3px;
+  animation: windowIn 360ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 3px 3px 4px;
+  background: linear-gradient(90deg, var(--w95-navy), var(--w95-navy2));
+  color: #fff;
+}
+
+/* Tiny mine for the window icon */
+.titleIcon {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  display: grid;
+  place-items: center;
+}
+.titleIcon::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #000;
+  box-shadow:
+    0 -5px 0 -3px #000, 0 5px 0 -3px #000, -5px 0 0 -3px #000, 5px 0 0 -3px #000,
+    inset 2px 2px 0 -1px #fff;
+}
+
+.titleText {
+  flex: 1 1 auto;
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.titleButtons {
+  display: flex;
+  gap: 2px;
+}
+.titleBtn {
+  width: 18px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--w95-dk);
+}
+.titleGlyphMin { align-self: end; }
+
+.menubar {
+  display: flex;
+  gap: 2px;
+  padding: 2px 4px;
+  background: var(--w95-face);
+}
+.menuItem {
+  padding: 1px 7px;
+  font-size: 12px;
+}
+.menuItem:hover {
+  background: var(--w95-navy);
+  color: #fff;
+}
+
+.body {
+  --cell: clamp(11px, calc((96vw - 48px) / var(--cols)), 24px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  background: var(--w95-face);
+  border-left: 3px solid var(--w95-hi);
+  border-top: 3px solid var(--w95-hi);
+}
+
+/* ----- Header: LED · smiley · LED ------------------------- */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 6px;
+}
+
+.led {
+  min-width: 3ch;
+  padding: 1px 3px;
+  background: #000;
+  color: #ff0000;
+  font-family: ui-monospace, "Courier New", monospace;
+  font-weight: 700;
+  font-size: clamp(18px, 3vw, 26px);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 6px rgba(255, 0, 0, 0.6);
+  border: 1px solid;
+  border-color: var(--w95-lo) var(--w95-hi) var(--w95-hi) var(--w95-lo);
+}
+
+.face {
+  width: clamp(30px, 4.6vw, 38px);
+  height: clamp(30px, 4.6vw, 38px);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: clamp(17px, 2.8vw, 22px);
+  line-height: 1;
+  cursor: pointer;
+}
+.face:active {
+  border-color: var(--w95-lo);
+  box-shadow: none;
+}
+
+/* ----- The minefield -------------------------------------- */
+.field {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), var(--cell));
+  grid-auto-rows: var(--cell);
+  width: fit-content;
+  background: var(--w95-face);
+}
+
+.cell {
+  display: grid;
+  place-items: center;
+  font-family: Tahoma, Verdana, sans-serif;
+  font-weight: 900;
+  font-size: calc(var(--cell) * 0.68);
+  line-height: 1;
+  cursor: default;
+}
+
+.hidden {
+  background: var(--w95-face);
+  border: calc(var(--cell) * 0.12) solid;
+  border-color: var(--w95-hi) var(--w95-lo) var(--w95-lo) var(--w95-hi);
+}
+.hidden:active {
+  border: 0;
+  border-left: 1px solid var(--w95-lo);
+  border-top: 1px solid var(--w95-lo);
+}
+
+.open {
+  background: var(--w95-face);
+  border-left: 1px solid var(--w95-lo);
+  border-top: 1px solid var(--w95-lo);
+  animation: pop 160ms ease-out both;
+}
+
+.boom {
+  background: #ff0000;
+}
+
+.n1 { color: #0000ff; }
+.n2 { color: #008000; }
+.n3 { color: #ff0000; }
+.n4 { color: #000080; }
+.n5 { color: #800000; }
+.n6 { color: #008080; }
+.n7 { color: #000000; }
+.n8 { color: #808080; }
+
+/* A mine: black ball, four spikes, a glint */
+.mine {
+  position: relative;
+  width: 50%;
+  height: 50%;
+  border-radius: 50%;
+  background: #000;
+  box-shadow:
+    0 calc(var(--cell) * -0.22) 0 calc(var(--cell) * -0.15) #000,
+    0 calc(var(--cell) * 0.22) 0 calc(var(--cell) * -0.15) #000,
+    calc(var(--cell) * -0.22) 0 0 calc(var(--cell) * -0.15) #000,
+    calc(var(--cell) * 0.22) 0 0 calc(var(--cell) * -0.15) #000;
+}
+.mine::after {
+  content: "";
+  position: absolute;
+  top: 20%;
+  left: 20%;
+  width: 28%;
+  height: 28%;
+  background: #fff;
+}
+
+/* A flag you planted on a square that wasn't a mine */
+.crossed::before {
+  content: "✕";
+  position: absolute;
+  inset: -40%;
+  display: grid;
+  place-items: center;
+  color: #ff0000;
+  font-size: calc(var(--cell) * 0.8);
+  z-index: 1;
+}
+
+/* A red pennant flying left off a black pole */
+.flag {
+  position: relative;
+  width: 64%;
+  height: 76%;
+  animation: plant 220ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+.flag::before {
+  content: "";
+  position: absolute;
+  right: 42%;
+  top: 0;
+  border-style: solid;
+  border-width: calc(var(--cell) * 0.22) calc(var(--cell) * 0.38) calc(var(--cell) * 0.22) 0;
+  border-color: transparent #ff0000 transparent transparent;
+}
+.flag::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: max(1.5px, calc(var(--cell) * 0.09));
+  background: #000;
+  border-bottom: calc(var(--cell) * 0.1) solid #000;
+}
+
+/* Once the board is won, the numbers fade back so the flagged
+   word reads clearly across the field. */
+.won .open {
+  opacity: 0.3;
+  transition: opacity 700ms ease;
+}
+.won .flag {
+  animation: plant 220ms cubic-bezier(0.3, 1.6, 0.5, 1) both, wave 1.6s ease-in-out 400ms infinite;
+}
+
+/* ----- ssh row -------------------------------------------- */
+.sshRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sshLabel {
+  font-size: 12px;
+}
+.sshField {
+  flex: 1 1 200px;
+  padding: 3px 6px;
+  font-family: "Courier New", ui-monospace, monospace;
+  font-size: 13px;
+  user-select: all;
+}
+.btn {
+  min-width: 76px;
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--w95-dk);
+  cursor: pointer;
+}
+.btn:active {
+  border-color: var(--w95-dk) var(--w95-hi) var(--w95-hi) var(--w95-dk);
+  box-shadow: inset 1px 1px 0 var(--w95-lo);
+}
+.btn:focus-visible {
+  outline: 1px dotted var(--w95-dk);
+  outline-offset: -5px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ----- Motion --------------------------------------------- */
+@keyframes windowIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pop {
+  from {
+    filter: brightness(1.25);
+  }
+  to {
+    filter: none;
+  }
+}
+
+@keyframes wave {
+  0%, 100% { transform: none; }
+  50% { transform: skewY(-8deg); }
+}
+
+@keyframes plant {
+  from {
+    transform: translateY(-60%) scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}

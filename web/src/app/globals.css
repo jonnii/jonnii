@@ -106,6 +106,20 @@ html[data-theme="solitaire"] {
   color-scheme: light;
 }
 
+/* ---- Design: Minesweeper -------------------------------
+   Same teal Win95 desktop. The window, LED counters and the
+   minefield live in minesweeper.module.css. ---------------- */
+html[data-theme="minesweeper"] {
+  --background: #008080;
+  --foreground: #000000;
+  --muted: #c0c0c0;
+  --muted-strong: #000000;
+  --link: #000080;
+  --link-hover: #1084d0;
+
+  color-scheme: light;
+}
+
 /* ---- Structural reset ------------------------------------ */
 html,
 body {
