@@ -1,0 +1,310 @@
+/* ============================================================
+   Theme: Teletext
+   A Ceefax-style page on a chunky CRT with a remote beside it.
+   The page is a 40-column grid of bold monospace in the seven
+   teletext colours; type is sized off the screen's width (cqw)
+   so the grid holds at any size, phone included. Backdrop
+   tokens live in globals.css for the pre-paint head script.
+   ============================================================ */
+
+.room {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(90% 70% at 50% 35%, #2a2622, transparent 70%),
+    var(--background);
+}
+
+.set {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+
+/* ----- The television ------------------------------------ */
+.tv {
+  width: min(780px, calc(100vw - 220px), calc((100svh - 80px) * 1.2));
+  padding: 22px;
+  border-radius: 28px;
+  background: linear-gradient(160deg, #3b3835, #1f1d1b 60%);
+  box-shadow:
+    inset 0 2px 0 #5a5652,
+    inset 0 -3px 0 #111,
+    0 30px 60px #000a;
+}
+
+.screen {
+  position: relative;
+  container-type: inline-size;
+  overflow: hidden;
+  border-radius: 18px / 22px;
+  background: #000;
+  box-shadow:
+    inset 0 0 0 3px #0a0a0a,
+    0 0 0 4px #121110;
+}
+
+/* Scanlines and a soft vignette over the glass */
+.screen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 2px, #0000002e 2px 3px),
+    radial-gradient(120% 100% at 50% 50%, transparent 60%, #000000a0);
+}
+
+/* ----- The 40-column page -------------------------------- */
+.page {
+  /* 40 columns of 0.6em glyphs plus 0.15em tracking = 30em */
+  font-size: calc((100cqw - 4cqw) / 30);
+  padding: 2cqw;
+  font-family: "Courier New", Courier, monospace;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  line-height: 1.15;
+  color: #fff;
+  text-shadow: 0 0 0.35em currentColor;
+}
+
+.row {
+  height: 1.15em;
+  white-space: pre;
+  overflow: hidden;
+  animation: paint 1ms steps(1) both;
+  animation-delay: calc(var(--row, 0) * 45ms);
+}
+
+/* Rows arrive one at a time, like a page coming off the carousel */
+@keyframes paint {
+  from {
+    visibility: hidden;
+  }
+  to {
+    visibility: visible;
+  }
+}
+
+.header {
+  animation: none;
+}
+
+.body {
+  height: calc(17 * 1.15em);
+}
+
+.doubleHeight {
+  height: 2.3em;
+}
+
+.dhInner {
+  display: inline-block;
+  transform: scaleY(2);
+  transform-origin: top;
+}
+
+/* The wordmark in block graphics */
+.blocks {
+  display: grid;
+  grid-template-columns: repeat(var(--word-cols), 1fr);
+  margin: 0.4em 0;
+  font-size: inherit;
+  animation: paint 1ms steps(1) both;
+  animation-delay: calc(var(--row, 0) * 45ms);
+}
+
+.blocks span {
+  aspect-ratio: 1 / 0.95;
+  box-shadow: 0 0 0.3em -0.05em transparent;
+}
+
+.blocks span[class] {
+  box-shadow: 0 0 0.35em -0.1em currentColor;
+}
+
+/* ----- Colours ------------------------------------------- */
+.fg_red { color: #f00; }
+.fg_green { color: #0f0; }
+.fg_yellow { color: #ff0; }
+.fg_blue { color: #00f; text-shadow: none; }
+.fg_magenta { color: #f0f; }
+.fg_cyan { color: #0ff; }
+.fg_white { color: #fff; }
+
+.bg_red { background: #f00; color: #f00; }
+.bg_green { background: #0f0; color: #0f0; }
+.bg_yellow { background: #ff0; color: #ff0; }
+.bg_blue { background: #00f; color: #00f; }
+.bg_magenta { background: #f0f; color: #f0f; }
+.bg_cyan { background: #0ff; color: #0ff; }
+.bg_white { background: #fff; color: #fff; }
+
+.concealed {
+  color: #0ff;
+  opacity: 0.55;
+}
+
+.flash {
+  animation: flash 1s steps(1) infinite;
+}
+
+@keyframes flash {
+  50% {
+    visibility: hidden;
+  }
+}
+
+/* ----- Links and buttons on the page --------------------- */
+.link {
+  all: unset;
+  cursor: pointer;
+  white-space: pre;
+}
+
+.link:hover,
+.link:focus-visible {
+  background: #ffffff26;
+}
+
+.fastext {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-top: 0.3em;
+}
+
+.fast {
+  border: 0;
+  padding: 0;
+  font: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  text-align: center;
+  height: 1.3em;
+  line-height: 1.3em;
+  color: #000;
+  text-shadow: none;
+}
+
+.fast:hover,
+.fast:focus-visible {
+  filter: brightness(1.25);
+  text-decoration: underline;
+}
+
+/* ----- The remote ---------------------------------------- */
+.remote {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 150px;
+  padding: 26px 18px 30px;
+  border-radius: 40px 40px 60px 60px;
+  background: linear-gradient(170deg, #2e2c2a, #161514);
+  box-shadow:
+    inset 0 2px 0 #4a4744,
+    0 20px 40px #0009;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.key {
+  all: unset;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: linear-gradient(#58534e, #3a3632);
+  box-shadow: 0 3px 0 #111, inset 0 1px 0 #77716b;
+  color: #eee;
+  font: 700 16px/1 system-ui, sans-serif;
+}
+
+.key:active,
+.fastKey:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #111;
+}
+
+.key:focus-visible,
+.fastKey:focus-visible {
+  outline: 2px solid #ff0;
+  outline-offset: 2px;
+}
+
+.fastKeys {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.fastKey {
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  height: 16px;
+  border-radius: 8px;
+  box-shadow: 0 3px 0 #111;
+}
+
+/* ----- Phone: remote tucks under the set ----------------- */
+@media (max-width: 720px) {
+  .set {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .tv {
+    width: calc(100vw - 32px);
+    padding: 10px;
+    border-radius: 16px;
+  }
+
+  .screen {
+    border-radius: 10px;
+  }
+
+  .remote {
+    width: 100%;
+    max-width: 360px;
+    padding: 16px;
+    border-radius: 24px;
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .keypad {
+    flex: 1;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+  }
+
+  .fastKeys {
+    width: 64px;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .fastKey {
+    height: 22px;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

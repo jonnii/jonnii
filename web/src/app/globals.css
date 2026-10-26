@@ -134,6 +134,21 @@ html[data-theme="skifree"] {
   color-scheme: light;
 }
 
+/* ---- Design: Teletext ---------------------------------
+   A dim living room around a CRT showing a Ceefax-style page.
+   The set, the page grid and the remote live in
+   teletext.module.css. ------------------------------------ */
+html[data-theme="teletext"] {
+  --background: #141210;
+  --foreground: #ffffff;
+  --muted: #3b3835;
+  --muted-strong: #ffffff;
+  --link: #00ffff;
+  --link-hover: #ffff00;
+
+  color-scheme: dark;
+}
+
 /* ---- Structural reset ------------------------------------ */
 html,
 body {
