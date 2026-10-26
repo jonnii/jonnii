@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
-import { THEMES, THEME_IDS, DEFAULT_THEME_ID } from "./registry";
+import { THEME_IDS, DEFAULT_THEME_ID, type ThemeId } from "./registry";
+import { DESIGNS } from "./designs";
 
 /**
- * Picks one design at random per visit and mounts only that design.
+ * Picks one design at random per visit and mounts only that design. Designs
+ * are code-split (see ./designs), so only the chosen one is downloaded.
  *
  * The blocking <head> script (see app/layout) has already rolled a theme and
  * set `data-theme` on <html> before first paint, so the correct backdrop is
@@ -15,7 +17,7 @@ import { THEMES, THEME_IDS, DEFAULT_THEME_ID } from "./registry";
  * entrance animation, turning the swap into an intentional reveal.
  */
 export default function ThemeStage() {
-  const [themeId, setThemeId] = useState<string | null>(null);
+  const [themeId, setThemeId] = useState<ThemeId | null>(null);
 
   useEffect(() => {
     const fromAttr = document.documentElement.dataset.theme;
@@ -24,7 +26,7 @@ export default function ThemeStage() {
         ? fromAttr
         : THEME_IDS[Math.floor(Math.random() * THEME_IDS.length)] ?? DEFAULT_THEME_ID;
     document.documentElement.dataset.theme = chosen;
-    setThemeId(chosen);
+    setThemeId(chosen as ThemeId);
   }, []);
 
   if (themeId === null) {
@@ -32,7 +34,6 @@ export default function ThemeStage() {
     return <h1 className="stagePlaceholder">jonnii</h1>;
   }
 
-  const theme = THEMES.find((t) => t.id === themeId) ?? THEMES[0];
-  const Design = theme.Component;
+  const Design = DESIGNS[themeId] ?? DESIGNS[DEFAULT_THEME_ID];
   return <Design />;
 }

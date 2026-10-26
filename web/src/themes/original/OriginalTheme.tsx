@@ -2,8 +2,19 @@
 import styles from "./original.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Major_Mono_Display } from "next/font/google";
 import EffectCanvas from "./EffectCanvas";
 import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
+
+// This design's typeface. Declared here rather than in the root layout so it's
+// only downloaded when this design is the one rolled. Next preloads fonts for
+// every module in the route, lazy ones included, so preloading is off.
+const majorMono = Major_Mono_Display({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-major-mono",
+  preload: false,
+});
 
 // Constants moved outside component to avoid recreation
 const ROWS = Array.from({ length: 6 }, (_, i) => i);
@@ -72,7 +83,7 @@ export default function OriginalTheme() {
 
   return (
     <main
-      className={styles.container}
+      className={`${styles.container} ${majorMono.variable}`}
       style={
         hoveredRow !== null
           ? ({ ["--spot-accent"]: HIGHLIGHT_PALETTE[hoveredRow] } as CSSProperties)

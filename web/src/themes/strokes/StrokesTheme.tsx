@@ -2,8 +2,24 @@
 import styles from "./strokes.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { Archivo, Wire_One } from "next/font/google";
 import CapsuleBurst from "./CapsuleBurst";
 import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
+
+// This design's typefaces. Declared here rather than in the root layout so
+// they're only downloaded when this design is the one rolled. Next preloads
+// fonts for every module in the route, lazy ones included, so preloading is off.
+const archivo = Archivo({
+  subsets: ["latin"],
+  variable: "--font-archivo",
+  preload: false,
+});
+const wireOne = Wire_One({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-wire-one",
+  preload: false,
+});
 
 const LETTERS = WORD.split("");
 
@@ -45,7 +61,7 @@ export default function StrokesTheme() {
   };
 
   return (
-    <main className={styles.stage}>
+    <main className={`${styles.stage} ${archivo.variable} ${wireOne.variable}`}>
       <CapsuleBurst />
 
       {/* Each letter sits inside its own colored capsule bar */}
