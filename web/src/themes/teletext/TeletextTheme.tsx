@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Reac
 import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
 import { pixelWordMask, pixelWordWidth, PIXEL_GLYPH_H } from "../shared/pixelFont";
 import { THEMES } from "../registry";
+import Remote, { type RemoteAction } from "./Remote";
 
 // A Ceefax-style teletext service. Page 100 is the index, with the wordmark in
 // chunky block graphics. Key in a three-digit page number (on the keyboard or
 // the remote) and the header rolls through pages while it "searches", then the
 // page paints itself in a line at a time. The coloured Fastext keys jump to the
-// main sections, and ? reveals the concealed answer, like the real thing.
+// main sections, and ? reveals the concealed answer, like the real thing. The
+// remote's TEXT key mixes the page over a test card, and power switches off.
 
 const COLS = 40;
 
@@ -64,7 +66,8 @@ const WORD_CELLS = (() => {
 // Pages that exist. Anything else and the header rolls forever, looking for it.
 const SOCIAL_PAGES = SOCIALS.map((s, i) => ({ ...s, page: 301 + i }));
 const CHANNELS = THEMES.filter((t) => t.id !== "teletext").map((t, i) => ({ ...t, page: 501 + i }));
-const PAGES = new Set([100, 200, 300, 500]);
+const PAGE_LIST = [100, 200, 300, 500];
+const PAGES = new Set(PAGE_LIST);
 
 const FASTEXT: { colour: Colour; label: string; page: number; key: string }[] = [
   { colour: RED, label: "Connect", page: 200, key: "r" },
@@ -72,6 +75,12 @@ const FASTEXT: { colour: Colour; label: string; page: number; key: string }[] = 
   { colour: YELLOW, label: "Channels", page: 500, key: "y" },
   { colour: CYAN, label: "Index", page: 100, key: "c" },
 ];
+
+// TEXT on the remote cycles teletext, teletext over the picture, then just TV.
+type ScreenMode = "text" | "mix" | "tv";
+const NEXT_MODE: Record<ScreenMode, ScreenMode> = { text: "mix", mix: "tv", tv: "text" };
+const MAX_VOLUME = 20;
+const OSD_MS = 1500;
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -97,7 +106,13 @@ export default function TeletextTheme() {
   const [headline, setHeadline] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [power, setPower] = useState(true);
+  const [mode, setMode] = useState<ScreenMode>("text");
+  const [volume, setVolume] = useState(12);
+  const [osd, setOsd] = useState(false);
+  const [previous, setPrevious] = useState(100);
   const copyResetRef = useRef<number | null>(null);
+  const osdRef = useRef<number | null>(null);
 
   // Live clock in the header, ticking every second like the real service.
   useEffect(() => {
@@ -117,7 +132,10 @@ export default function TeletextTheme() {
     const started = Date.now();
     const id = window.setInterval(() => {
       if (PAGES.has(searching) && Date.now() - started >= SEARCH_MS) {
-        setPage(searching);
+        setPage((p) => {
+          if (p !== searching) setPrevious(p);
+          return searching;
+        });
         setHeaderNum(searching);
         setSearching(null);
         setRevealed(false);
@@ -132,6 +150,7 @@ export default function TeletextTheme() {
   useEffect(() => {
     return () => {
       if (copyResetRef.current !== null) window.clearTimeout(copyResetRef.current);
+      if (osdRef.current !== null) window.clearTimeout(osdRef.current);
     };
   }, []);
 
@@ -164,6 +183,51 @@ export default function TeletextTheme() {
     },
     [entry, goto]
   );
+
+  const handleRemote = (action: RemoteAction) => {
+    if (action.type === "power") {
+      setPower((p) => !p);
+      return;
+    }
+    // A set in standby only answers the power button.
+    if (!power) return;
+    switch (action.type) {
+      case "digit":
+        pressDigit(action.digit);
+        break;
+      case "clear":
+        setEntry("");
+        break;
+      case "back":
+        goto(previous);
+        break;
+      case "volume":
+        setVolume((v) => Math.max(0, Math.min(MAX_VOLUME, v + action.delta)));
+        setOsd(true);
+        if (osdRef.current !== null) window.clearTimeout(osdRef.current);
+        osdRef.current = window.setTimeout(() => setOsd(false), OSD_MS);
+        break;
+      case "page": {
+        const at = PAGE_LIST.indexOf(searching ?? page);
+        const next = (Math.max(0, at) + action.delta + PAGE_LIST.length) % PAGE_LIST.length;
+        goto(PAGE_LIST[next]);
+        break;
+      }
+      case "fastext":
+        goto(FASTEXT[action.index].page);
+        break;
+      case "text":
+        setMode((m) => NEXT_MODE[m]);
+        break;
+      case "index":
+        setMode("text");
+        goto(100);
+        break;
+      case "reveal":
+        setRevealed((r) => !r);
+        break;
+    }
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(SSH_COMMAND);
@@ -356,8 +420,17 @@ export default function TeletextTheme() {
     <main className={styles.room}>
       <div className={styles.set}>
         <div className={styles.tv}>
-          <div className={styles.screen}>
-            <div className={styles.page}>
+          <div
+            className={`${styles.screen} ${power ? "" : styles.standby} ${
+              mode !== "text" ? styles.picture : ""
+            }`}
+          >
+            {mode !== "text" && (
+              <div className={styles.testCard} aria-hidden="true">
+                {mode === "tv" && <span className={styles.testCardName}>JONNIIVISION</span>}
+              </div>
+            )}
+            <div className={`${styles.page} ${mode === "tv" ? styles.hiddenPage : ""}`}>
               <div className={`${styles.row} ${styles.header}`}>
                 <C c={WHITE}>{keyed.padEnd(6)}</C>
                 <C c={YELLOW}>{WORD.toUpperCase()}FAX</C>
@@ -382,51 +455,20 @@ export default function TeletextTheme() {
                 ))}
               </nav>
             </div>
+            {osd && (
+              <div className={styles.osd} aria-live="polite">
+                <span>VOLUME</span>
+                <span className={styles.osdBar}>
+                  {Array.from({ length: MAX_VOLUME }, (_, i) => (
+                    <i key={i} className={i < volume ? styles.osdOn : undefined} />
+                  ))}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className={styles.remote} aria-label="Remote control">
-          <div className={styles.keypad}>
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
-              <button type="button" key={d} className={styles.key} onClick={() => pressDigit(d)}>
-                {d}
-              </button>
-            ))}
-            <button
-              type="button"
-              className={styles.key}
-              onClick={() => setRevealed((r) => !r)}
-              aria-label="Reveal"
-              title="Reveal"
-            >
-              ?
-            </button>
-            <button type="button" className={styles.key} onClick={() => pressDigit("0")}>
-              0
-            </button>
-            <button
-              type="button"
-              className={styles.key}
-              onClick={() => goto(100)}
-              aria-label="Index"
-              title="Index"
-            >
-              ⌂
-            </button>
-          </div>
-          <div className={styles.fastKeys}>
-            {FASTEXT.map((f) => (
-              <button
-                type="button"
-                key={f.page}
-                className={`${styles.fastKey} ${styles[`bg_${f.colour}`]}`}
-                onClick={() => goto(f.page)}
-                aria-label={f.label}
-                title={f.label}
-              />
-            ))}
-          </div>
-        </div>
+        <Remote fastextLabels={FASTEXT.map((f) => f.label)} onPress={handleRemote} />
       </div>
     </main>
   );
