@@ -30,12 +30,15 @@ interface TaskbarProps {
   /** Label shown on the app button. */
   appLabel: string;
   /** Which small icon to show on the app button. */
-  iconVariant?: "grid" | "card" | "mine";
+  iconVariant?: "grid" | "card" | "mine" | "tree";
   /** Optional click handler for the app button (e.g. restore a dialog). */
   onAppClick?: () => void;
 }
 
-function AppIcon({ variant }: { variant: "grid" | "card" | "mine" }) {
+function AppIcon({ variant }: { variant: "grid" | "card" | "mine" | "tree" }) {
+  if (variant === "tree") {
+    return <span className={styles.treeIcon} aria-hidden="true" />;
+  }
   if (variant === "mine") {
     return (
       <span className={styles.mineIcon} aria-hidden="true">
