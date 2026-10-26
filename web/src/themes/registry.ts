@@ -21,6 +21,7 @@ export const THEMES = [
   { id: "defrag", label: "Disk Defragmenter" },
   { id: "solitaire", label: "Solitaire (You Win)" },
   { id: "minesweeper", label: "Minesweeper" },
+  { id: "skifree", label: "SkiFree" },
 ] as const satisfies readonly ThemeDef[];
 
 export type ThemeId = (typeof THEMES)[number]["id"];

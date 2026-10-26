@@ -20,4 +20,5 @@ export const DESIGNS: Record<ThemeId, ComponentType> = {
     ssr: false,
     loading: Loading,
   }),
+  skifree: dynamic(() => import("./skifree/SkiFreeTheme"), { ssr: false, loading: Loading }),
 };
