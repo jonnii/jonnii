@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Major_Mono_Display, Archivo, Wire_One } from "next/font/google";
 import "./globals.css";
 import { config } from "@fortawesome/fontawesome-svg-core";
 import "@fortawesome/fontawesome-svg-core/styles.css";
@@ -7,25 +6,6 @@ import Umami from "../components/Umami";
 import { THEME_IDS } from "../themes/registry";
 
 config.autoAddCss = false;
-
-// Each design declares its own typeface(s) as a CSS variable; the active theme
-// references the one it needs. Only one design mounts at a time.
-const majorMono = Major_Mono_Display({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-major-mono",
-});
-const archivo = Archivo({
-  subsets: ["latin"],
-  variable: "--font-archivo",
-});
-const wireOne = Wire_One({
-  subsets: ["latin"],
-  weight: "400",
-  variable: "--font-wire-one",
-});
-
-const fontVars = `${majorMono.variable} ${archivo.variable} ${wireOne.variable}`;
 
 // Runs in <head> before first paint: rolls one design at random and applies it
 // so the correct backdrop is painted with no flash. ThemeStage reads the same
@@ -64,7 +44,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={fontVars}>
+      <body>
         <Umami />
         {children}
       </body>
