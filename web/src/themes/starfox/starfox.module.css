@@ -1,0 +1,375 @@
+/* ============================================================
+   Theme: Star Fox — "Corneria, 1993"
+   A Super FX flight over Corneria drawn on one canvas (see
+   scene.ts), with a SNES HUD on top: the shield gauge, a roll
+   counter, Peppy's comm window and an incoming transmission
+   carrying the ssh command. A barrel roll spins the whole
+   stage, so the space behind it shows at the corners. The
+   backdrop token (deep space) lives in globals.css.
+   ============================================================ */
+
+.space {
+  --sf-white: #ffffff;
+  --sf-steel: #99aabb;
+  --sf-panel: rgba(0, 10, 40, 0.85);
+  --sf-cyan: #77ccff;
+  --sf-gold: #ffdd00;
+  --sf-green: #77ff77;
+  --sf-ring: #ffcc22;
+  --sf-ring-dk: #aa7700;
+
+  position: relative;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--background);
+  font-family: var(--font-press-start), "Courier New", monospace;
+  color: var(--sf-white);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+  animation: warpIn 700ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
+}
+
+.rolling {
+  animation: barrelRoll 1000ms cubic-bezier(0.45, 0.05, 0.35, 1) both;
+}
+
+@keyframes warpIn {
+  from {
+    opacity: 0;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes barrelRoll {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(0.86);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: manipulation;
+  cursor: crosshair;
+}
+
+/* ----- HUD -------------------------------------------------- */
+.shield,
+.score {
+  position: absolute;
+  top: 22px;
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-shadow: 2px 2px 0 #000;
+  pointer-events: none;
+}
+
+.shield {
+  left: 24px;
+}
+
+.bar {
+  margin-top: 8px;
+  width: 200px;
+  height: 14px;
+  border: 2px solid var(--sf-white);
+  background: #112233;
+  box-shadow: 2px 2px 0 #000;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  width: 82%;
+  background: linear-gradient(var(--sf-cyan) 0 40%, #2288dd 40%);
+}
+
+.score {
+  right: 24px;
+  text-align: right;
+  line-height: 20px;
+}
+
+.score b {
+  color: var(--sf-gold);
+  font-weight: normal;
+}
+
+.panel {
+  background: var(--sf-panel);
+  border: 3px solid var(--sf-steel);
+  box-shadow: 3px 3px 0 #000;
+}
+
+/* Peppy's comm window: the whole thing is the barrel-roll button. */
+.comm {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.portrait {
+  position: relative;
+  flex: none;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border: 3px solid var(--sf-steel);
+  background: #001122;
+  box-shadow: inset 0 0 0 2px #000, 3px 3px 0 #000;
+}
+
+/* CRT scanlines over the portrait */
+.portrait::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(transparent 0 2px, rgba(0, 0, 0, 0.25) 2px 3px);
+}
+
+.face {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: talk 260ms steps(2) infinite;
+}
+
+@keyframes talk {
+  50% {
+    transform: translateY(1px);
+  }
+}
+
+.speech {
+  display: block;
+  width: 340px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 20px;
+  background: var(--sf-panel);
+  border: 3px solid var(--sf-steel);
+  box-shadow: 3px 3px 0 #000;
+}
+
+.comm:hover .speech,
+.comm:focus-visible .speech {
+  border-color: var(--sf-gold);
+}
+
+.who {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--sf-cyan);
+  font-size: 9px;
+}
+
+.line {
+  display: block;
+  min-height: 40px;
+}
+
+.keys {
+  display: block;
+  margin-top: 8px;
+  font-size: 9px;
+  color: var(--sf-gold);
+}
+
+.keys kbd {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 3px 5px;
+  border: 2px solid var(--sf-gold);
+  font: inherit;
+}
+
+/* No keyboard on a phone: just the double-tap. */
+@media (pointer: coarse) {
+  .keyHint {
+    display: none;
+  }
+}
+
+/* ----- Links ------------------------------------------------ */
+.links {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.ssh {
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 10px;
+  color: var(--sf-green);
+  text-align: left;
+  background: var(--sf-panel);
+  border: 3px solid var(--sf-steel);
+  box-shadow: 3px 3px 0 #000;
+  cursor: pointer;
+}
+
+.ssh:hover,
+.ssh:focus-visible {
+  border-color: var(--sf-gold);
+}
+
+.ssh small {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 8px;
+  color: var(--sf-steel);
+}
+
+.rings {
+  display: flex;
+  gap: 12px;
+}
+
+/* The socials are supply rings: fly through one to follow it. */
+.ring {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 6px solid var(--sf-ring);
+  background: rgba(255, 200, 40, 0.08);
+  box-shadow: inset 0 0 0 2px var(--sf-ring-dk), 0 0 0 2px var(--sf-ring-dk), 3px 3px 0 #000;
+  color: var(--sf-white);
+  animation: ringSpin 2.4s ease-in-out infinite;
+}
+
+.ring:nth-child(2) {
+  animation-delay: -0.8s;
+}
+
+.ring:nth-child(3) {
+  animation-delay: -1.6s;
+}
+
+.ring:hover,
+.ring:focus-visible {
+  border-color: var(--sf-white);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.ringIcon {
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(2px 2px 0 #000);
+}
+
+@keyframes ringSpin {
+  50% {
+    transform: scaleX(0.82);
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ----- Phones: comm window and links stack along the bottom -- */
+@media (max-width: 640px) {
+  .shield,
+  .score {
+    top: 16px;
+    font-size: 10px;
+  }
+
+  .shield {
+    left: 16px;
+  }
+
+  .score {
+    right: 16px;
+  }
+
+  .bar {
+    width: 130px;
+  }
+
+  .comm {
+    left: 16px;
+    right: 16px;
+    bottom: 168px;
+  }
+
+  .portrait {
+    width: 72px;
+    height: 72px;
+  }
+
+  .speech {
+    flex: 1;
+    width: auto;
+    font-size: 10px;
+    line-height: 16px;
+  }
+
+  .line {
+    min-height: 32px;
+  }
+
+  .links {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    align-items: stretch;
+  }
+
+  .ssh {
+    font-size: 9px;
+  }
+
+  .rings {
+    justify-content: space-between;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage,
+  .face,
+  .ring {
+    animation: none;
+  }
+}
