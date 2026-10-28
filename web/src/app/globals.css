@@ -149,6 +149,21 @@ html[data-theme="teletext"] {
   color-scheme: dark;
 }
 
+/* ---- Design: Star Fox ---------------------------------
+   Deep space behind a Corneria flight; it shows at the
+   corners while the page does a barrel roll. The flight and
+   the HUD live in starfox.module.css. --------------------- */
+html[data-theme="starfox"] {
+  --background: #050816;
+  --foreground: #ffffff;
+  --muted: #99aabb;
+  --muted-strong: #ffffff;
+  --link: #77ccff;
+  --link-hover: #ffdd00;
+
+  color-scheme: dark;
+}
+
 /* ---- Structural reset ------------------------------------ */
 html,
 body {

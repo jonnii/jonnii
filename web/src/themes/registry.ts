@@ -23,6 +23,7 @@ export const THEMES = [
   { id: "minesweeper", label: "Minesweeper" },
   { id: "skifree", label: "SkiFree" },
   { id: "teletext", label: "Teletext" },
+  { id: "starfox", label: "Star Fox" },
 ] as const satisfies readonly ThemeDef[];
 
 export type ThemeId = (typeof THEMES)[number]["id"];
