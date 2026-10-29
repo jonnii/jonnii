@@ -1,10 +1,12 @@
 /* ============================================================
    Theme: Star Fox — "Corneria, 1993"
-   A Super FX flight over Corneria drawn on one canvas (see
-   scene.ts), with a SNES HUD on top: the shield gauge, a roll
-   counter, Peppy's comm window and an incoming transmission
-   carrying the ssh command. A barrel roll spins the whole
-   stage, so the space behind it shows at the corners. The
+   A Super FX sortie over Corneria drawn on one low-resolution
+   canvas (see scene.ts), scaled up with crisp pixels, with a
+   SNES HUD on top: the shield gauge, the hit counter, the
+   squad's comm window and an incoming transmission carrying
+   the ssh command. Peppy's barrel roll spins the whole stage,
+   so the space behind it shows at the corners. Flying under
+   the wordmark ends the mission with a tally screen. The
    backdrop token (deep space) lives in globals.css.
    ============================================================ */
 
@@ -65,7 +67,8 @@
   width: 100%;
   height: 100%;
   display: block;
-  touch-action: manipulation;
+  image-rendering: pixelated;
+  touch-action: none;
   cursor: crosshair;
 }
 
@@ -96,7 +99,8 @@
 .bar i {
   display: block;
   height: 100%;
-  width: 82%;
+  width: 100%;
+  transition: width 200ms steps(4);
   background: linear-gradient(var(--sf-cyan) 0 40%, #2288dd 40%);
 }
 
@@ -296,6 +300,115 @@
   }
 }
 
+/* ----- Score pops -------------------------------------------- */
+.pop {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  font-size: 11px;
+  text-shadow: 2px 2px 0 #000;
+  pointer-events: none;
+  white-space: nowrap;
+  animation: popUp 800ms steps(8) both;
+}
+
+.gold {
+  color: var(--sf-gold);
+}
+
+.cyan {
+  color: var(--sf-cyan);
+}
+
+.red {
+  color: #ff5555;
+}
+
+@keyframes popUp {
+  to {
+    transform: translate(-50%, -220%);
+    opacity: 0;
+  }
+}
+
+/* ----- Mission complete ---------------------------------------- */
+.complete {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 72px 16px 24px;
+  text-align: center;
+  background: repeating-conic-gradient(rgba(0, 8, 30, 0.75) 0 25%, rgba(0, 8, 30, 0.55) 0 50%) 0 0 / 4px 4px;
+  animation: warpIn 500ms steps(6) both;
+}
+
+.title {
+  font-size: clamp(28px, 6vw, 56px);
+  line-height: 1.15;
+  font-weight: normal;
+  font-style: italic;
+  letter-spacing: 2px;
+  background: linear-gradient(#ffffff 0 35%, #88b8f8 35% 50%, #3058c8 50% 65%, #c8e0ff 65%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(3px 3px 0 #0a1a5a);
+}
+
+.course {
+  font-size: 10px;
+  color: var(--sf-cyan);
+}
+
+.tally {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 12px 28px;
+  padding: 16px 22px;
+  font-size: 12px;
+  text-align: left;
+  background: var(--sf-panel);
+  border: 3px solid var(--sf-steel);
+  box-shadow: 3px 3px 0 #000;
+}
+
+.tally dd {
+  color: var(--sf-gold);
+  text-align: right;
+}
+
+.tally .rank {
+  color: var(--sf-green);
+}
+
+.again {
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 12px;
+  color: var(--sf-gold);
+  background: rgba(40, 30, 0, 0.6);
+  border: 3px solid var(--sf-gold);
+  box-shadow: 3px 3px 0 #000;
+  cursor: pointer;
+  animation: blink 1s steps(2) infinite;
+}
+
+.again:hover,
+.again:focus-visible {
+  color: #000;
+  background: var(--sf-gold);
+  animation: none;
+}
+
+@keyframes blink {
+  50% {
+    border-color: transparent;
+  }
+}
+
 .srOnly {
   position: absolute;
   width: 1px;
@@ -364,12 +477,24 @@
   .rings {
     justify-content: space-between;
   }
+
+  .complete {
+    gap: 14px;
+    padding-top: 64px;
+  }
+
+  .tally {
+    gap: 10px 16px;
+    font-size: 10px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .stage,
   .face,
-  .ring {
+  .ring,
+  .complete,
+  .again {
     animation: none;
   }
 }
