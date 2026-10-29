@@ -1,5 +1,25 @@
-// The flight, drawn Super FX style: flat-shaded boxes in a perspective
-// projection, sorted back to front. Everything is in camera-relative world
+import {
+  ARWING,
+  ARWING_TAIL,
+  ENEMY,
+  NEAR,
+  SHARD_COLOURS,
+  bands,
+  drawBox,
+  drawMesh,
+  fillPoly,
+  place,
+  project,
+  shade,
+  type Face,
+  type Vec3,
+  type View,
+} from "./render";
+
+// One sortie over Corneria. The Arwing skims the ground between towers and
+// arches while Venom fighters come at it; they shoot back, and a barrel roll
+// bats their shots away. The wordmark hangs ahead as a giant voxel arch, and
+// flying under it ends the mission. Everything is in camera-relative world
 // units: x is across, y is up, z is into the screen.
 
 interface Voxel {
@@ -8,29 +28,92 @@ interface Voxel {
   letter: number;
 }
 
-interface Bolt {
-  /** Seconds since it was fired. */
-  age: number;
-  side: -1 | 1;
+interface Enemy {
+  x: number;
+  y: number;
+  z: number;
+  /** Phase of its weave. */
+  phase: number;
+  /** Sideways speed once it breaks off. */
+  vx: number;
+  fired: boolean;
+  willFire: boolean;
 }
 
+interface Projectile {
+  x: number;
+  y: number;
+  z: number;
+  vx: number;
+  vy: number;
+  vz: number;
+}
+
+interface Shot extends Projectile {
+  deflected: boolean;
+}
+
+interface Shard extends Projectile {
+  spin: number;
+  age: number;
+  colour: string;
+}
+
+interface Flash {
+  x: number;
+  y: number;
+  z: number;
+  age: number;
+}
+
+export type GameEventKind = "hit" | "deflect" | "damage" | "badly" | "complete";
+
+export interface GameEvent {
+  kind: GameEventKind;
+  /** Where it happened, as fractions of the canvas. */
+  x: number;
+  y: number;
+}
+
+export type Phase = "flight" | "complete";
+
 export interface Scene {
-  /** Canvas size in CSS pixels. */
-  w: number;
-  h: number;
+  /** Render size in (big) pixels. */
+  rw: number;
+  rh: number;
   time: number;
-  /** Distance flown, for scrolling the ground and the towers. */
+  /** Distance flown, for scrolling the ground and the scenery. */
   travel: number;
-  /** Distance to the voxel wordmark. */
+  /** Distance to the wordmark; negative once it's behind us. */
   wordZ: number;
   camX: number;
+  /** How far the Arwing is leaning into its turn, in radians. */
+  bank: number;
   /** Arrow-key steering: -1, 0 or 1. */
   steer: number;
-  /** Mouse x as a fraction of the window, if the mouse is steering. */
+  /** Pointer x as a fraction of the window, if the pointer is steering. */
   pointer: number | null;
-  bolts: Bolt[];
+  /** Seconds since the player last touched anything: past a few, the autopilot flies. */
+  idle: number;
+  phase: Phase;
+  /** Seconds since the wordmark went overhead. */
+  outro: number;
+  shield: number;
+  hits: number;
+  rolls: number;
+  /** Seconds into the current barrel roll, or -1. */
+  rollT: number;
+  hurtT: number;
+  spawnT: number;
+  autoFireT: number;
+  enemies: Enemy[];
+  bolts: Projectile[];
+  shots: Shot[];
+  shards: Shard[];
+  flashes: Flash[];
+  events: GameEvent[];
   voxels: Voxel[];
-  /** Filled cells, as "c,r", for culling faces between neighbours. */
+  /** Filled cells, as "c,r", for skipping faces between neighbours. */
   filled: Set<string>;
   cols: number;
 }
@@ -38,303 +121,615 @@ export interface Scene {
 const SPEED = 110;
 const FAR = 2200;
 const WORD_START = 1100;
-const WORD_RESPAWN = 1900;
-/** Voxel size, and the height of the wordmark's underside: it's an arch you fly under. */
+/** The wordmark drifts in slowly while there's fighting to do, then rushes past. */
+const WORD_SLOW = 0.45;
+const WORD_RUSH_Z = 500;
 const VOXEL = 18;
-const WORD_FLOOR = 55;
 const WORD_DEPTH = VOXEL * 1.6;
-const CAM_Y = 40;
-const STEER_RANGE = 140;
-const STEER_SPEED = 220;
-const BOLT_S = 0.45;
-const GRID = 60;
+const OUTRO_S = 1.2;
+
+const SHIP_Z = 170;
+const SHIP_SCALE = 0.72;
+/** The nose tips up a little, turning the top of the ship toward the camera. */
+const SHIP_PITCH = -0.3;
+const ENEMY_SCALE = 1.5;
+const SHIP_Y = 12;
+const STEER_RANGE = 160;
+const STEER_SPEED = 240;
+const AUTOPILOT_S = 3;
+const ROLL_S = 0.6;
+
+const BOLT_SPEED = 1300;
+const AIM_CONE = 90;
+const ENEMY_SPEED = 190;
+const SHOT_SPEED = 380;
+const MAX_ENEMIES = 3;
+const ENEMY_HIT_R = 34;
+const SHIP_HIT_X = 36;
+const SHIP_HIT_Y = 24;
+const DAMAGE = 14;
+const REGEN = 3;
+
+const SHARD_S = 0.9;
+const FLASH_S = 0.35;
+
+const SKY = ["#1838a0", "#2048b8", "#2858c8", "#3068d8", "#4880e0", "#6098e8", "#80b0f0", "#a0c8f8"];
+const GROUND = ["#185818", "#206820", "#287828", "#308830", "#389838"];
+const MARKER = "#145014";
+const SHADOW = "#104010";
+const MOUNTAINS_FAR = "#5070c0";
+const MOUNTAINS_NEAR = "#3858a8";
+const TOWER = "#a8b0c8";
+const ARCH = "#c8c8d8";
+const LETTERS = ["#f8d038", "#f88838", "#f858a0", "#7888f8", "#38d0f8", "#78f078"];
+const BOLT = "#60f860";
+const BOLT_CORE = "#e8ffe8";
+const SHOT = "#f83838";
+const SHOT_DEFLECTED = "#f8a0c8";
+const FLAME = ["#ffffff", "#a8e0ff", "#4890f8"];
+const FLASH_COLOURS = ["#ffffff", "#f8f088", "#f8a038", "#d04020"];
+
+// Scenery from a fixed seed, so every visit flies the same Corneria.
+const seeded = (seed: number) => {
+  let s = seed;
+  return () => (s = (s * 16807) % 2147483647) / 2147483647;
+};
+
 const TOWER_SPACING = 170;
-const TOWER_COUNT = 14;
-
-const SKY_TOP = "#2b4fbf";
-const SKY_MID = "#7fb3ff";
-const HAZE = "#d8ecff";
-const HILLS = "#6a8fd0";
-const GROUND_FAR = "#2f7a3a";
-const GROUND_NEAR = "#5cc05a";
-const GRID_LINE = "rgba(20, 60, 25, 0.55)";
-const TOWER = "#8a96b0";
-const LETTERS = ["#ffd23a", "#ff8a3a", "#ff5aa0", "#7a8aff", "#3ad0ff", "#7af07a"];
-
-// Towers along both sides of the corridor, from a fixed seed so every visit
-// flies the same Corneria.
 const TOWERS = (() => {
-  let s = 1993;
-  const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
-  return Array.from({ length: TOWER_COUNT }, (_, i) => {
+  const rnd = seeded(1993);
+  return Array.from({ length: 14 }, (_, i) => {
     const side = i % 2 ? 1 : -1;
     const w = 34 + rnd() * 30;
     return {
-      x: side * (250 + rnd() * 320) - (side < 0 ? w : 0),
+      x: side * (300 + rnd() * 320) - (side < 0 ? w : 0),
       z: i * TOWER_SPACING + rnd() * 60,
       w,
       h: 90 + rnd() * 200,
     };
   });
 })();
-const TOWER_SPAN = TOWER_COUNT * TOWER_SPACING;
+const TOWER_SPAN = TOWERS.length * TOWER_SPACING;
+
+const ARCH_SPAN = 2600;
+const ARCH_OFFSET = 1500;
+
+const MARKER_ROW = 90;
+const MARKER_COL = 180;
+
+const MOUNTAINS = (() => {
+  const rnd = seeded(64);
+  return Array.from({ length: 24 }, () => [rnd(), rnd()]);
+})();
+
+const rand = Math.random;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+const wrap = (v: number, span: number) => ((v % span) + span) % span;
 
 export function makeScene(voxels: Voxel[], cols: number): Scene {
-  return {
-    w: 0,
-    h: 0,
+  const s: Scene = {
+    rw: 0,
+    rh: 0,
     time: 0,
     travel: 0,
     wordZ: WORD_START,
     camX: 0,
+    bank: 0,
     steer: 0,
     pointer: null,
+    idle: AUTOPILOT_S,
+    phase: "flight",
+    outro: 0,
+    shield: 100,
+    hits: 0,
+    rolls: 0,
+    rollT: -1,
+    hurtT: 0,
+    spawnT: 0,
+    autoFireT: 0,
+    enemies: [],
     bolts: [],
+    shots: [],
+    shards: [],
+    flashes: [],
+    events: [],
     voxels,
     filled: new Set(voxels.map((v) => `${v.c},${v.r}`)),
     cols,
   };
+  resetScene(s);
+  return s;
 }
 
-export function fire(scene: Scene) {
-  scene.bolts.push({ age: 0, side: -1 }, { age: 0, side: 1 });
+/** Back to the start of the sortie, with a couple of fighters already inbound. */
+export function resetScene(s: Scene) {
+  s.wordZ = WORD_START;
+  s.phase = "flight";
+  s.outro = 0;
+  s.shield = 100;
+  s.hits = 0;
+  s.rolls = 0;
+  s.rollT = -1;
+  s.hurtT = 0;
+  s.spawnT = 2;
+  s.bolts = [];
+  s.shots = [];
+  s.shards = [];
+  s.flashes = [];
+  s.events = [];
+  s.enemies = [spawnEnemy(s, s.camX - 110, 760), spawnEnemy(s, s.camX + 140, 1050)];
 }
 
-interface View {
-  f: number;
-  cx: number;
-  hy: number;
-  camX: number;
-}
-
-type Pt = [number, number];
-
-const project = (v: View, x: number, y: number, z: number): Pt => [
-  v.cx + (v.f * (x - v.camX)) / z,
-  v.hy - (v.f * (y - CAM_Y)) / z,
-];
-
-function fillPoly(ctx: CanvasRenderingContext2D, pts: Pt[], fill: string) {
-  ctx.beginPath();
-  ctx.moveTo(pts[0][0], pts[0][1]);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-  ctx.closePath();
-  ctx.fillStyle = fill;
-  ctx.fill();
-}
-
-const hexRgb = (hex: string) => {
-  const n = parseInt(hex.slice(1), 16);
-  return [n >> 16, (n >> 8) & 255, n & 255];
-};
-const HAZE_RGB = hexRgb(HAZE);
-
-/** A face colour: base colour lit by `k`, fading into the haze with distance. */
-function tint(hex: string, k: number, z: number): string {
-  const fog = Math.max(0, Math.min(0.8, (z - 1100) / (FAR - 1100)));
-  const rgb = hexRgb(hex).map((c, i) => {
-    const lit = Math.min(255, c * k);
-    return Math.round(lit + (HAZE_RGB[i] - lit) * fog);
-  });
-  return `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
-}
-
-interface Faces {
-  left: boolean;
-  right: boolean;
-  top: boolean;
-  bottom: boolean;
-}
-
-/** An axis-aligned box from (x0, y0, z0) to (x1, y1, z1), front face at z0. */
-function box(
-  ctx: CanvasRenderingContext2D,
-  v: View,
-  x0: number,
-  y0: number,
-  z0: number,
-  x1: number,
-  y1: number,
-  z1: number,
-  colour: string,
-  faces: Faces = { left: true, right: true, top: true, bottom: true }
-) {
-  const p = (x: number, y: number, z: number) => project(v, x, y, z);
-  if (faces.left && v.camX < x0)
-    fillPoly(ctx, [p(x0, y0, z0), p(x0, y1, z0), p(x0, y1, z1), p(x0, y0, z1)], tint(colour, 0.62, z0));
-  if (faces.right && v.camX > x1)
-    fillPoly(ctx, [p(x1, y0, z0), p(x1, y1, z0), p(x1, y1, z1), p(x1, y0, z1)], tint(colour, 0.62, z0));
-  if (faces.top && CAM_Y > y1)
-    fillPoly(ctx, [p(x0, y1, z0), p(x1, y1, z0), p(x1, y1, z1), p(x0, y1, z1)], tint(colour, 1.18, z0));
-  if (faces.bottom && CAM_Y < y0)
-    fillPoly(ctx, [p(x0, y0, z0), p(x1, y0, z0), p(x1, y0, z1), p(x0, y0, z1)], tint(colour, 0.45, z0));
-  fillPoly(ctx, [p(x0, y0, z0), p(x1, y0, z0), p(x1, y1, z0), p(x0, y1, z0)], tint(colour, 0.88, z0));
-}
-
-function drawArwing(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, bank: number) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.rotate(bank);
-  ctx.scale(s, s);
-  const glow = ctx.createRadialGradient(0, 6, 0, 0, 6, 22);
-  glow.addColorStop(0, "#fff");
-  glow.addColorStop(0.3, "#8cf");
-  glow.addColorStop(1, "rgba(60,120,255,0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(0, 6, 22, 0, Math.PI * 2);
-  ctx.fill();
-  // Wings, then the blue wing blades, then the fuselage and the cockpit.
-  fillPoly(ctx, [[-8, 0], [-92, 34], [-86, 40], [-6, 14]], "#c9ced8");
-  fillPoly(ctx, [[8, 0], [92, 34], [86, 40], [6, 14]], "#9aa1b0");
-  fillPoly(ctx, [[-8, 0], [-50, 16], [-46, 22], [-6, 14]], "#e8ecf2");
-  fillPoly(ctx, [[8, 0], [50, 16], [46, 22], [6, 14]], "#b9c0cc");
-  fillPoly(ctx, [[-70, 26], [-96, -26], [-90, -28], [-62, 24]], "#2a5ad8");
-  fillPoly(ctx, [[-70, 26], [-96, -26], [-80, 26]], "#4a7af0");
-  fillPoly(ctx, [[70, 26], [96, -26], [90, -28], [62, 24]], "#1a3aa0");
-  fillPoly(ctx, [[70, 26], [96, -26], [80, 26]], "#2a5ad8");
-  fillPoly(ctx, [[0, -46], [-14, 4], [0, 18]], "#f2f4f8");
-  fillPoly(ctx, [[0, -46], [14, 4], [0, 18]], "#b8bfcc");
-  fillPoly(ctx, [[0, -26], [-7, -4], [0, 0]], "#33aadd");
-  fillPoly(ctx, [[0, -26], [7, -4], [0, 0]], "#1177aa");
-  fillPoly(ctx, [[-14, 4], [0, 18], [14, 4], [0, 10]], "#7a8294");
-  ctx.restore();
-}
-
-export function drawScene(ctx: CanvasRenderingContext2D, s: Scene, dt: number) {
-  const { w, h } = s;
-  if (!w || !h) return;
-
-  // ----- Fly -----
-  s.time += dt;
-  s.travel += SPEED * dt;
-  s.wordZ -= SPEED * dt;
-  if (s.wordZ < 8) s.wordZ = WORD_RESPAWN;
-  const target =
-    s.pointer !== null
-      ? (s.pointer - 0.5) * 2 * STEER_RANGE
-      : Math.max(-STEER_RANGE, Math.min(STEER_RANGE, s.camX + s.steer * STEER_RANGE));
-  const prevX = s.camX;
-  s.camX += Math.max(-STEER_SPEED * dt, Math.min(STEER_SPEED * dt, target - s.camX));
-  const drift = dt > 0 ? (s.camX - prevX) / dt / STEER_SPEED : 0;
-  s.bolts = s.bolts.filter((b) => (b.age += dt) < BOLT_S);
-
-  const portrait = h > w;
-  const v: View = {
-    f: Math.max(w * 0.85, h * 0.5),
-    cx: w / 2,
-    hy: h * (portrait ? 0.4 : 0.44),
-    camX: s.camX,
+function spawnEnemy(s: Scene, x: number, z: number): Enemy {
+  return {
+    x,
+    y: camY(s) - 20 + rand() * 60,
+    z,
+    phase: rand() * Math.PI * 2,
+    vx: 0,
+    fired: false,
+    willFire: rand() < 0.75,
   };
+}
 
-  // ----- Sky, hills and ground -----
-  const sky = ctx.createLinearGradient(0, 0, 0, v.hy);
-  sky.addColorStop(0, SKY_TOP);
-  sky.addColorStop(0.7, SKY_MID);
-  sky.addColorStop(1, HAZE);
-  ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, w, v.hy);
+/** Marks the player as present, which hands the controls back from the autopilot. */
+export function touch(s: Scene) {
+  s.idle = 0;
+}
 
-  // Far hills drift a little against the steering.
-  ctx.fillStyle = HILLS;
-  ctx.beginPath();
-  ctx.moveTo(0, v.hy);
-  const hillStep = w / 14;
-  const shift = (-s.camX * 0.3) % hillStep;
-  for (let i = -1; i <= 15; i++) {
-    const n = i - Math.floor((-s.camX * 0.3) / hillStep);
-    ctx.lineTo(i * hillStep + shift, v.hy - 18 - ((((n * 37) % 50) + 50) % 50));
-  }
-  ctx.lineTo(w, v.hy);
-  ctx.fill();
-
-  const ground = ctx.createLinearGradient(0, v.hy, 0, h);
-  ground.addColorStop(0, GROUND_FAR);
-  ground.addColorStop(1, GROUND_NEAR);
-  ctx.fillStyle = ground;
-  ctx.fillRect(0, v.hy, w, h - v.hy);
-
-  ctx.strokeStyle = GRID_LINE;
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  const gx0 = Math.floor((s.camX - 3000) / GRID) * GRID;
-  for (let x = gx0; x <= s.camX + 3000; x += GRID) {
-    const a = project(v, x, 0, 6);
-    const b = project(v, x, 0, FAR);
-    ctx.moveTo(a[0], a[1]);
-    ctx.lineTo(b[0], b[1]);
-  }
-  for (let z = GRID - (s.travel % GRID); z < FAR; z += GRID) {
-    if (z < 6) continue;
-    const y = project(v, 0, 0, z)[1];
-    ctx.moveTo(0, y);
-    ctx.lineTo(w, y);
-  }
-  ctx.stroke();
-
-  // ----- Towers and the wordmark, back to front -----
-  const items: { z: number; dx: number; draw: () => void }[] = [];
-  for (const t of TOWERS) {
-    const z = ((((t.z - s.travel) % TOWER_SPAN) + TOWER_SPAN) % TOWER_SPAN) + 10;
-    if (z > FAR) continue;
-    items.push({
-      z,
-      dx: Math.abs(t.x + t.w / 2 - s.camX),
-      draw: () => box(ctx, v, t.x, 0, z, t.x + t.w, t.h, z + t.w, TOWER),
+/** Fires a pair of lasers from the wing guns, aimed at whatever's in front. */
+export function fire(s: Scene) {
+  if (s.phase !== "flight") return;
+  const target = s.enemies
+    .filter((e) => Math.abs(e.x - s.camX) < AIM_CONE && e.z > SHIP_Z + 60 && e.z < 1400)
+    .sort((a, b) => a.z - b.z)[0];
+  for (const side of [-1, 1]) {
+    const x = s.camX + side * 16;
+    let tx = s.camX;
+    let ty = camY(s) + 10;
+    let tz = SHIP_Z + 1000;
+    if (target) {
+      // Lead the target by the time the bolt takes to get there.
+      const t = (target.z - SHIP_Z) / (BOLT_SPEED + ENEMY_SPEED);
+      tx = target.x + Math.sin(s.time * 1.6 + target.phase) * 50 * t + target.vx * t;
+      ty = target.y;
+      tz = target.z - ENEMY_SPEED * t;
+    }
+    const dx = tx - x;
+    const dy = ty - SHIP_Y;
+    const dz = tz - SHIP_Z;
+    const len = Math.hypot(dx, dy, dz);
+    s.bolts.push({
+      x,
+      y: SHIP_Y,
+      z: SHIP_Z + 20,
+      vx: (dx / len) * BOLT_SPEED,
+      vy: (dy / len) * BOLT_SPEED,
+      vz: (dz / len) * BOLT_SPEED,
     });
   }
-  const wz = s.wordZ;
-  if (wz > 10) {
-    const left = (-s.cols * VOXEL) / 2;
-    for (const vx of s.voxels) {
-      const x = left + vx.c * VOXEL;
-      const y = WORD_FLOOR + (6 - vx.r) * VOXEL;
-      const faces = {
-        left: !s.filled.has(`${vx.c - 1},${vx.r}`),
-        right: !s.filled.has(`${vx.c + 1},${vx.r}`),
-        top: !s.filled.has(`${vx.c},${vx.r - 1}`),
-        bottom: !s.filled.has(`${vx.c},${vx.r + 1}`),
-      };
-      items.push({
-        z: wz,
-        dx: Math.abs(x + VOXEL / 2 - s.camX),
-        draw: () =>
-          box(ctx, v, x, y, wz, x + VOXEL, y + VOXEL, wz + WORD_DEPTH, LETTERS[vx.letter % LETTERS.length], faces),
+}
+
+/** Starts a barrel roll, unless one is already under way. */
+export function roll(s: Scene): boolean {
+  if (s.rollT >= 0) return false;
+  s.rollT = 0;
+  s.rolls++;
+  return true;
+}
+
+// ----- Layout ----------------------------------------------------------------
+
+/** Where the Arwing sits on screen, as a fraction of the height. */
+const shipScreenY = (s: Scene) => (s.rh > s.rw ? 0.6 : 0.72);
+
+function view(s: Scene): View {
+  const portrait = s.rh > s.rw;
+  const f = Math.max(s.rw * 0.85, s.rh * 0.5);
+  const hy = s.rh * (portrait ? 0.4 : 0.44);
+  return { f, cx: s.rw / 2, hy, camX: s.camX, camY: camY(s) };
+}
+
+/** The camera height that puts the Arwing (always at SHIP_Y) where the layout wants it. */
+function camY(s: Scene): number {
+  if (!s.rh) return 47;
+  const portrait = s.rh > s.rw;
+  const f = Math.max(s.rw * 0.85, s.rh * 0.5);
+  const hy = s.rh * (portrait ? 0.4 : 0.44);
+  return SHIP_Y + ((shipScreenY(s) * s.rh - hy) * SHIP_Z) / f;
+}
+
+/** The wordmark always clears the camera, so the Arwing flies under it. */
+const wordFloor = (s: Scene) => camY(s) + 15;
+
+function emit(s: Scene, kind: GameEventKind, x: number, y: number, z: number) {
+  const v = view(s);
+  const [px, py] = z > NEAR ? project(v, x, y, z) : [v.cx, v.hy];
+  s.events.push({ kind, x: clamp(px / s.rw, 0.05, 0.95), y: clamp(py / s.rh, 0.08, 0.9) });
+}
+
+// ----- Simulation ------------------------------------------------------------
+
+export function stepScene(s: Scene, dt: number) {
+  s.time += dt;
+  s.travel += SPEED * dt;
+  s.idle += dt;
+  s.hurtT = Math.max(0, s.hurtT - dt);
+  s.shield = Math.min(100, s.shield + REGEN * dt);
+  if (s.rollT >= 0) {
+    s.rollT += dt;
+    if (s.rollT > ROLL_S) s.rollT = -1;
+  }
+
+  // The wordmark, and the end of the mission once it's overhead.
+  if (s.wordZ > 0) {
+    s.wordZ -= (s.wordZ > WORD_RUSH_Z ? SPEED * WORD_SLOW : SPEED) * dt;
+    if (s.wordZ <= NEAR) s.wordZ = -1;
+  } else if (s.phase === "flight") {
+    s.outro += dt;
+    if (s.outro > OUTRO_S) {
+      s.phase = "complete";
+      s.events.push({ kind: "complete", x: 0.5, y: 0.5 });
+    }
+  }
+
+  // Steering: the pointer, the arrow keys, or else the autopilot hunting the nearest fighter.
+  const autopilot = s.idle > AUTOPILOT_S;
+  const prey = s.enemies.filter((e) => e.z > SHIP_Z + 80 && e.z < 1100).sort((a, b) => a.z - b.z)[0];
+  let target: number;
+  if (!autopilot && s.pointer !== null) target = (s.pointer - 0.5) * 2 * STEER_RANGE;
+  else if (!autopilot) target = s.camX + s.steer * STEER_RANGE;
+  else target = prey ? prey.x : Math.sin(s.time * 0.4) * 60;
+  target = clamp(target, -STEER_RANGE, STEER_RANGE);
+  const move = clamp(target - s.camX, -STEER_SPEED * dt, STEER_SPEED * dt);
+  s.camX += move;
+  const lean = dt > 0 ? (-move / (STEER_SPEED * dt)) * 0.5 : 0;
+  s.bank += (lean - s.bank) * Math.min(1, dt * 8);
+
+  if (autopilot && s.phase === "flight") {
+    s.autoFireT -= dt;
+    if (prey && Math.abs(prey.x - s.camX) < 45 && s.autoFireT <= 0) {
+      fire(s);
+      s.autoFireT = 0.45;
+    }
+  }
+
+  // Fighters: weave in, maybe take a shot, then break off to the side.
+  if (s.phase === "flight" && s.wordZ > WORD_RUSH_Z) {
+    s.spawnT -= dt;
+    if (s.spawnT <= 0 && s.enemies.length < MAX_ENEMIES) {
+      s.enemies.push(spawnEnemy(s, s.camX + (rand() - 0.5) * 500, 1500));
+      s.spawnT = 1.4 + rand() * 1.4;
+    }
+  }
+  for (const e of s.enemies) {
+    e.z -= ENEMY_SPEED * dt;
+    e.x += (Math.sin(s.time * 1.6 + e.phase) * 50 + e.vx) * dt;
+    if (e.z < 480) e.vx += Math.sign(e.x - s.camX || 1) * 260 * dt;
+    if (e.willFire && !e.fired && e.z < 900) {
+      e.fired = true;
+      const dx = s.camX - e.x;
+      const dy = SHIP_Y - e.y;
+      const dz = SHIP_Z - e.z;
+      const len = Math.hypot(dx, dy, dz);
+      s.shots.push({
+        x: e.x,
+        y: e.y,
+        z: e.z - 20,
+        vx: (dx / len) * SHOT_SPEED,
+        vy: (dy / len) * SHOT_SPEED,
+        vz: (dz / len) * SHOT_SPEED,
+        deflected: false,
       });
     }
   }
+  s.enemies = s.enemies.filter((e) => e.z > 30);
+
+  // Lasers, checked in two half-steps so a fast bolt can't skip past a fighter.
+  for (const b of s.bolts) {
+    for (let k = 0; k < 2; k++) {
+      b.x += (b.vx * dt) / 2;
+      b.y += (b.vy * dt) / 2;
+      b.z += (b.vz * dt) / 2;
+      const hit = s.enemies.find(
+        (e) =>
+          Math.abs(e.x - b.x) < ENEMY_HIT_R &&
+          Math.abs(e.y - b.y) < ENEMY_HIT_R &&
+          Math.abs(e.z - b.z) < 40
+      );
+      if (hit) {
+        explode(s, hit);
+        s.enemies = s.enemies.filter((e) => e !== hit);
+        b.z = FAR * 2;
+        break;
+      }
+    }
+  }
+  s.bolts = s.bolts.filter((b) => b.z < FAR && b.z > NEAR);
+
+  // Enemy fire: a barrel roll deflects it, otherwise it costs shield.
+  for (const sh of s.shots) {
+    const before = sh.z;
+    sh.x += sh.vx * dt;
+    sh.y += sh.vy * dt;
+    sh.z += sh.vz * dt;
+    if (!sh.deflected && before >= SHIP_Z && sh.z < SHIP_Z) {
+      const near = Math.abs(sh.x - s.camX) < SHIP_HIT_X && Math.abs(sh.y - SHIP_Y) < SHIP_HIT_Y;
+      if (near && s.rollT >= 0) {
+        sh.deflected = true;
+        sh.vz = SHOT_SPEED * 1.4;
+        sh.vx = (rand() - 0.5) * 600;
+        sh.vy = 150 + rand() * 200;
+        emit(s, "deflect", sh.x, sh.y, SHIP_Z);
+      } else if (near) {
+        sh.z = -1;
+        s.hurtT = 0.2;
+        s.shield -= DAMAGE;
+        if (s.shield <= 0) {
+          s.shield = 100;
+          emit(s, "badly", s.camX, SHIP_Y, SHIP_Z);
+        } else {
+          emit(s, "damage", s.camX, SHIP_Y, SHIP_Z);
+        }
+      }
+    }
+  }
+  s.shots = s.shots.filter((sh) => sh.z > NEAR && sh.z < FAR);
+
+  for (const p of s.shards) {
+    p.age += dt;
+    p.vy -= 120 * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.z += (p.vz - SPEED) * dt;
+  }
+  s.shards = s.shards.filter((p) => p.age < SHARD_S && p.z > NEAR);
+  for (const fl of s.flashes) {
+    fl.age += dt;
+    fl.z -= SPEED * dt;
+  }
+  s.flashes = s.flashes.filter((fl) => fl.age < FLASH_S && fl.z > NEAR);
+}
+
+function explode(s: Scene, e: Enemy) {
+  s.hits++;
+  s.flashes.push({ x: e.x, y: e.y, z: e.z, age: 0 });
+  for (let i = 0; i < 10; i++) {
+    const a = rand() * Math.PI * 2;
+    const sp = 60 + rand() * 140;
+    s.shards.push({
+      x: e.x,
+      y: e.y,
+      z: e.z,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp + 40,
+      vz: (rand() - 0.5) * 160 - ENEMY_SPEED * 0.5,
+      spin: (rand() - 0.5) * 16,
+      age: 0,
+      colour: SHARD_COLOURS[i % SHARD_COLOURS.length],
+    });
+  }
+  emit(s, "hit", e.x, e.y + 30, e.z);
+}
+
+// ----- Drawing ---------------------------------------------------------------
+
+export function drawScene(ctx: CanvasRenderingContext2D, s: Scene) {
+  const { rw, rh } = s;
+  if (!rw || !rh) return;
+  const v = view(s);
+
+  // Sky, mountains and ground, in dithered bands.
+  bands(ctx, rw, 0, v.hy, SKY);
+  for (const [layer, colour, rise, drift] of [
+    [0, MOUNTAINS_FAR, 0.11, 0.08],
+    [1, MOUNTAINS_NEAR, 0.07, 0.16],
+  ] as const) {
+    const step = rw / 9;
+    const shift = wrap(-s.camX * drift, step * MOUNTAINS.length);
+    const pts: [number, number][] = [[0, v.hy]];
+    for (let i = -1; i <= 11; i++) {
+      const m = MOUNTAINS[wrap(i - Math.floor(shift / step) + layer * 7, MOUNTAINS.length)];
+      pts.push([i * step + (shift % step) + m[0] * step * 0.5, v.hy - rh * (rise * 0.4 + m[1] * rise)]);
+    }
+    pts.push([rw, v.hy]);
+    fillPoly(ctx, pts, colour);
+  }
+  bands(ctx, rw, v.hy, rh, GROUND);
+
+  // Ground markers, scrolling past to show the speed.
+  for (let z = MARKER_ROW - wrap(s.travel, MARKER_ROW); z < FAR * 0.6; z += MARKER_ROW) {
+    if (z < NEAR + 4) continue;
+    const row = Math.round((z + s.travel) / MARKER_ROW);
+    const offset = ((row * 97) % 5) * 36;
+    for (let x = Math.floor((s.camX - 1400) / MARKER_COL) * MARKER_COL; x < s.camX + 1400; x += MARKER_COL) {
+      const x0 = x + offset;
+      fillPoly(
+        ctx,
+        [project(v, x0, 0, z), project(v, x0 + 40, 0, z), project(v, x0 + 40, 0, z + 30), project(v, x0, 0, z + 30)],
+        MARKER
+      );
+    }
+  }
+
+  // The Arwing's shadow.
+  fillPoly(
+    ctx,
+    Array.from({ length: 10 }, (_, i) => {
+      const a = (i / 10) * Math.PI * 2;
+      return project(v, s.camX + Math.cos(a) * 18, 0, SHIP_Z + 10 + Math.sin(a) * 9);
+    }),
+    SHADOW
+  );
+
+  // Everything with depth, back to front.
+  const items: { z: number; dx: number; draw: () => void }[] = [];
+  const add = (z: number, x: number, draw: () => void) =>
+    items.push({ z, dx: Math.abs(x - s.camX), draw });
+
+  for (const t of TOWERS) {
+    const z = wrap(t.z - s.travel, TOWER_SPAN) + 10;
+    if (z < FAR) add(z, t.x + t.w / 2, () => drawBox(ctx, v, t.x, 0, z, t.x + t.w, t.h, z + t.w, TOWER));
+  }
+
+  const az = wrap(ARCH_OFFSET - s.travel, ARCH_SPAN) + 10;
+  if (az < FAR) {
+    const top = camY(s) + 120;
+    add(az, -260, () => drawBox(ctx, v, -275, 0, az, -235, top, az + 40, ARCH));
+    add(az, 260, () => drawBox(ctx, v, 235, 0, az, 275, top, az + 40, ARCH));
+    add(az + 1, 0, () => drawBox(ctx, v, -275, top, az, 275, top + 30, az + 40, ARCH));
+  }
+
+  const wz = s.wordZ;
+  if (wz > NEAR) {
+    const left = (-s.cols * VOXEL) / 2;
+    const floor = wordFloor(s);
+    for (const vx of s.voxels) {
+      const x = left + vx.c * VOXEL;
+      const y = floor + (6 - vx.r) * VOXEL;
+      const skip = {
+        left: s.filled.has(`${vx.c - 1},${vx.r}`),
+        right: s.filled.has(`${vx.c + 1},${vx.r}`),
+        top: s.filled.has(`${vx.c},${vx.r - 1}`),
+        bottom: s.filled.has(`${vx.c},${vx.r + 1}`),
+      };
+      const colour = LETTERS[vx.letter % LETTERS.length];
+      add(wz, x + VOXEL / 2, () => drawBox(ctx, v, x, y, wz, x + VOXEL, y + VOXEL, wz + WORD_DEPTH, colour, skip));
+    }
+  }
+
+  for (const e of s.enemies) {
+    const bank = Math.cos(s.time * 1.6 + e.phase) * 0.5 + e.vx * 0.002;
+    const faces: Face[] = ENEMY.map((f) => ({
+      colour: f.colour,
+      pts: f.pts.map((p) => place(p, [e.x, e.y, e.z], bank, 0, ENEMY_SCALE)),
+    }));
+    add(e.z, e.x, () => drawMesh(ctx, v, faces));
+  }
+
+  for (const p of s.shards) {
+    const a = p.age * p.spin;
+    const faces: Face[] = [
+      {
+        colour: p.colour,
+        pts: ([[0, 7, 0], [-6, -4, 2], [6, -4, -2]] as Vec3[]).map((q) =>
+          place(q, [p.x, p.y, p.z], a, a * 0.7)
+        ),
+      },
+    ];
+    add(p.z, p.x, () => drawMesh(ctx, v, faces));
+  }
+
+  for (const fl of s.flashes) {
+    add(fl.z, fl.x, () => {
+      const [x, y] = project(v, fl.x, fl.y, fl.z);
+      const t = fl.age / FLASH_S;
+      const r = ((v.f * 26) / fl.z) * (0.6 + t * 1.6);
+      const colour = FLASH_COLOURS[Math.min(FLASH_COLOURS.length - 1, Math.floor(t * FLASH_COLOURS.length))];
+      fillPoly(
+        ctx,
+        Array.from({ length: 12 }, (_, i) => {
+          const a = (i / 12) * Math.PI * 2 + fl.age * 3;
+          const q = i % 2 ? r * 0.45 : r;
+          return [x + Math.cos(a) * q, y + Math.sin(a) * q] as [number, number];
+        }),
+        colour
+      );
+    });
+  }
+
+  for (const b of s.bolts) {
+    add(b.z, b.x, () => {
+      const tail = 0.04;
+      const a = project(v, b.x, b.y, b.z);
+      const c = project(v, b.x - b.vx * tail, b.y - b.vy * tail, Math.max(NEAR + 1, b.z - b.vz * tail));
+      const width = Math.max(1, (v.f * 4) / b.z);
+      ctx.lineCap = "round";
+      ctx.strokeStyle = BOLT;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(a[0], a[1]);
+      ctx.lineTo(c[0], c[1]);
+      ctx.stroke();
+      ctx.strokeStyle = BOLT_CORE;
+      ctx.lineWidth = Math.max(1, width * 0.4);
+      ctx.stroke();
+    });
+  }
+
+  for (const sh of s.shots) {
+    add(sh.z, sh.x, () => {
+      const [x, y] = project(v, sh.x, sh.y, sh.z);
+      const r = Math.max(1.5, (v.f * 6) / sh.z);
+      fillPoly(
+        ctx,
+        [
+          [x, y - r],
+          [x + r * 0.6, y],
+          [x, y + r],
+          [x - r * 0.6, y],
+        ],
+        sh.deflected ? SHOT_DEFLECTED : SHOT
+      );
+    });
+  }
+
   items.sort((a, b) => b.z - a.z || b.dx - a.dx);
   for (const it of items) it.draw();
 
-  // ----- The Arwing, its shadow and its lasers -----
-  const scale = Math.max(0.9, Math.min(1.6, Math.min(w / 850, h / 530)));
-  const ax = w / 2 + drift * 30 * scale;
-  const ay = h * (portrait ? 0.6 : 0.72) + Math.sin(s.time * 2.2) * 4;
-  const bank = -drift * 0.45 + Math.sin(s.time * 1.3) * 0.03;
+  drawArwing(ctx, s, v);
 
-  ctx.fillStyle = "rgba(0, 30, 0, 0.35)";
-  ctx.beginPath();
-  ctx.ellipse(ax, ay + (h - ay) * 0.7, 60 * scale, 7 * scale, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = "#77ff77";
-  ctx.lineWidth = 3 * scale;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  for (const b of s.bolts) {
-    // From the wing roots toward the vanishing point, shrinking as they go.
-    const p = b.age / BOLT_S;
-    const sx = ax + b.side * 40 * scale;
-    const sy = ay - 20 * scale;
-    const ex = v.cx;
-    const ey = v.hy;
-    const at = (q: number): Pt => [sx + (ex - sx) * q, sy + (ey - sy) * q];
-    const a = at(Math.pow(p, 0.6));
-    const c = at(Math.min(1, Math.pow(p, 0.6) + 0.18 * (1 - p)));
-    ctx.moveTo(a[0], a[1]);
-    ctx.lineTo(c[0], c[1]);
+  // Taking a hit: half the screen goes red, in a checkerboard.
+  if (s.hurtT > 0) {
+    ctx.globalAlpha = 0.45;
+    ctx.fillStyle = shade("#f02020", 1);
+    ctx.fillRect(0, 0, rw, rh);
+    ctx.globalAlpha = 1;
   }
-  ctx.stroke();
+}
 
-  drawArwing(ctx, ax, ay, scale, bank);
+function drawArwing(ctx: CanvasRenderingContext2D, s: Scene, v: View) {
+  // Bank into turns and bob a little; a barrel roll is one full turn about the nose.
+  const bank = s.bank + Math.sin(s.time * 1.3) * 0.05;
+  const t = s.rollT >= 0 ? s.rollT / ROLL_S : 0;
+  const spin = t > 0 ? -(t * t * (3 - 2 * t)) * Math.PI * 2 : 0;
+  const at: Vec3 = [s.camX, SHIP_Y + Math.sin(s.time * 2.2) * 1.5, SHIP_Z];
+  const faces: Face[] = ARWING.map((f) => ({
+    colour: f.colour,
+    pts: f.pts.map((p) => place(p, at, bank + spin, s.bank * 0.3, SHIP_SCALE, SHIP_PITCH)),
+  }));
+  drawMesh(ctx, v, faces);
+
+  // The engine flame, flickering.
+  const [tx, ty] = project(v, ...place(ARWING_TAIL, at, bank + spin, s.bank * 0.3, SHIP_SCALE, SHIP_PITCH));
+  const flicker = 0.75 + 0.25 * Math.sin(s.time * 47);
+  FLAME.slice()
+    .reverse()
+    .forEach((colour, i) => {
+      const r = ((v.f * (5 - i * 1.4)) / SHIP_Z) * flicker;
+      fillPoly(
+        ctx,
+        [
+          [tx, ty - r],
+          [tx + r, ty],
+          [tx, ty + r],
+          [tx - r, ty],
+        ],
+        colour
+      );
+    });
+
+  // A barrel roll leaves a ring of light around the ship.
+  if (s.rollT >= 0) {
+    const [cx, cy] = project(v, s.camX, SHIP_Y, SHIP_Z);
+    const r = (v.f * 44) / SHIP_Z;
+    ctx.strokeStyle = shade("#88d8ff", 1);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r, r * 0.45, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, r * 1.12, r * 0.52, 0, spin, spin + Math.PI * 0.8);
+    ctx.stroke();
+  }
 }
