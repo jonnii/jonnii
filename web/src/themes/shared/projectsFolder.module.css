@@ -1,0 +1,236 @@
+/* ============================================================
+   Shared Win95 "Projects" desktop folder + Explorer window.
+   Self-contained palette, like the taskbar.
+   ============================================================ */
+
+.desktopIcon,
+.window {
+  --w95-face: #c0c0c0;
+  --w95-hi: #ffffff;
+  --w95-lo: #808080;
+  --w95-dk: #000000;
+  --w95-soft: #dfdfdf;
+  --w95-navy: #000080;
+  font-family: Tahoma, "MS Sans Serif", Geneva, Verdana, sans-serif;
+  -webkit-font-smoothing: none;
+}
+
+.raised {
+  background: var(--w95-face);
+  border: 2px solid;
+  border-color: var(--w95-hi) var(--w95-dk) var(--w95-dk) var(--w95-hi);
+  box-shadow: inset 1px 1px 0 var(--w95-soft), inset -1px -1px 0 var(--w95-lo);
+}
+.sunken {
+  background: var(--w95-hi);
+  border: 2px solid;
+  border-color: var(--w95-lo) var(--w95-hi) var(--w95-hi) var(--w95-lo);
+  box-shadow: inset 1px 1px 0 var(--w95-dk), inset -1px -1px 0 var(--w95-soft);
+}
+.sunkenThin {
+  border: 1px solid;
+  border-color: var(--w95-lo) var(--w95-hi) var(--w95-hi) var(--w95-lo);
+  padding: 2px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ----- Desktop icon --------------------------------------- */
+.desktopIcon {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 76px;
+  padding: 4px 2px;
+  appearance: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.iconLabel {
+  padding: 1px 3px;
+  font-size: 12px;
+  color: #fff;
+  text-shadow: 1px 1px 0 #000;
+  border: 1px dotted transparent;
+}
+.desktopIcon:hover .iconLabel,
+.desktopIcon:focus-visible .iconLabel {
+  background: var(--w95-navy);
+  border-color: #ffff80;
+  text-shadow: none;
+}
+.desktopIcon:focus-visible {
+  outline: none;
+}
+.bigFolder {
+  position: relative;
+  width: 34px;
+  height: 26px;
+  margin-top: 6px;
+  background: linear-gradient(#ffe680, #e8b800);
+  border: 1px solid #6b5000;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+.bigFolder::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: -7px;
+  width: 14px;
+  height: 6px;
+  background: #ffe680;
+  border: 1px solid #6b5000;
+  border-bottom: 0;
+  border-radius: 2px 2px 0 0;
+}
+.smallFolder {
+  position: relative;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 10px;
+  margin-top: 2px;
+  background: #ffd84a;
+  border: 1px solid #6b5000;
+}
+
+/* ----- Explorer window ------------------------------------ */
+.backdrop {
+  position: fixed;
+  inset: 0 0 36px;
+  z-index: 25;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+}
+.window {
+  width: min(660px, 100%);
+  padding: 3px;
+  font-size: 13px;
+  color: var(--w95-dk);
+  box-shadow: inset 1px 1px 0 var(--w95-soft), inset -1px -1px 0 var(--w95-lo),
+    5px 5px 0 rgba(0, 0, 0, 0.4);
+  animation: winIn 160ms ease-out both;
+}
+.titlebar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 3px 3px 5px;
+  background: linear-gradient(90deg, var(--w95-navy), #1084d0);
+  color: #fff;
+  font-weight: 700;
+}
+.titleText {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.titleBtn {
+  width: 18px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font: 700 10px/1 Tahoma, sans-serif;
+  color: var(--w95-dk);
+  cursor: pointer;
+}
+.menu {
+  display: flex;
+  gap: 14px;
+  padding: 4px 6px;
+}
+.list {
+  margin: 0 1px;
+}
+.list ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.header,
+.item {
+  display: grid;
+  grid-template-columns: 150px 1fr 100px;
+  align-items: center;
+}
+.header span {
+  padding: 2px 6px;
+  background: var(--w95-face);
+  border: 1px solid;
+  border-color: var(--w95-hi) var(--w95-lo) var(--w95-lo) var(--w95-hi);
+}
+.item {
+  padding: 5px 6px;
+  color: var(--w95-dk);
+  text-decoration: none;
+}
+.item[data-selected="true"] {
+  background: var(--w95-navy);
+  color: #fff;
+}
+.item:focus-visible {
+  outline: 1px dotted #ffff80;
+  outline-offset: -2px;
+}
+.name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+}
+.desc {
+  padding-right: 10px;
+}
+.kind {
+  font-size: 12px;
+}
+.exe {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding-top: 3px;
+  background: linear-gradient(var(--w95-navy) 0 4px, #fff 4px);
+  border: 1px solid var(--w95-dk);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--w95-navy);
+}
+.status {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  margin-top: 3px;
+  font-size: 12px;
+}
+
+@keyframes winIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 560px) {
+  .header,
+  .item {
+    grid-template-columns: 1fr;
+  }
+  .header span:not(:first-child),
+  .kind {
+    display: none;
+  }
+  .desc {
+    padding: 2px 0 0 26px;
+    font-size: 12px;
+  }
+}

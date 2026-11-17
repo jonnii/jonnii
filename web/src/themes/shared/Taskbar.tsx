@@ -1,13 +1,15 @@
 "use client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState, type CSSProperties } from "react";
-import { SOCIALS } from "./content";
+import { PROJECTS, SOCIALS } from "./content";
 import { THEMES } from "../registry";
+import ProjectsFolder from "./ProjectsFolder";
 import styles from "./taskbar.module.css";
 
-// The shared Win95 taskbar: a Start button whose menu lists the themes (the
-// active one ticked), the socials and a shuffle entry; an app button; and a
-// system tray with the social icons and a live clock. Used by every
+// The shared Win95 taskbar: a Start button whose menu has a Projects flyout,
+// lists the themes (the active one ticked), the socials and a shuffle entry; an app button; and a
+// system tray with the social icons and a live clock. Also puts the Projects
+// folder on the desktop. Used by every
 // Win95-flavoured design so there's one Start menu, not one per theme.
 
 function trayGlyph(label: string): string {
@@ -33,6 +35,8 @@ interface TaskbarProps {
   iconVariant?: "grid" | "card" | "mine" | "tree";
   /** Optional click handler for the app button (e.g. restore a dialog). */
   onAppClick?: () => void;
+  /** Put the Projects folder on the desktop (off where the theme shows them itself). */
+  projectsFolder?: boolean;
 }
 
 function AppIcon({ variant }: { variant: "grid" | "card" | "mine" | "tree" }) {
@@ -69,9 +73,11 @@ export default function Taskbar({
   appLabel,
   iconVariant = "grid",
   onAppClick,
+  projectsFolder = true,
 }: TaskbarProps) {
   const [clock, setClock] = useState("");
   const [startOpen, setStartOpen] = useState(false);
+  const [projectsOpen, setProjectsOpen] = useState(false);
 
   // Live taskbar clock — client-only mount, so no hydration mismatch.
   useEffect(() => {
@@ -88,123 +94,182 @@ export default function Taskbar({
   useEffect(() => {
     if (!startOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setStartOpen(false);
+      if (e.key === "Escape") {
+        setStartOpen(false);
+        setProjectsOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [startOpen]);
 
   return (
-    <footer className={styles.taskbar}>
-      <div className={styles.startWrap}>
-        {startOpen && (
-          <>
-            <div className={styles.startOverlay} onClick={() => setStartOpen(false)} />
-            <div className={styles.startMenu} role="menu">
-              <div className={styles.startBanner} aria-hidden="true">
-                <span>
-                  jonnii<b>95</b>
-                </span>
-              </div>
-              <div className={styles.startList}>
-                <div className={styles.startSection}>Themes</div>
-                {THEMES.map((t) => (
-                  <a
-                    key={t.id}
-                    href={`?theme=${t.id}`}
-                    className={styles.startItem}
-                    role="menuitem"
-                    aria-current={t.id === themeId ? "true" : undefined}
-                  >
-                    <span className={styles.startBullet} aria-hidden="true">
-                      {t.id === themeId ? "●" : "○"}
-                    </span>
-                    {t.label}
-                  </a>
-                ))}
-
-                <div className={styles.startSep} />
-
-                <div className={styles.startSection}>Find me</div>
-                {SOCIALS.map((social) => (
-                  <a
-                    key={social.label}
-                    href={social.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={styles.startItem}
-                    role="menuitem"
-                  >
-                    <span className={styles.startItemIcon} aria-hidden="true">
-                      {trayGlyph(social.label)}
-                    </span>
-                    {social.label}
-                  </a>
-                ))}
-
-                <div className={styles.startSep} />
-
-                <a href="/" className={styles.startItem} role="menuitem">
-                  <span
-                    className={`${styles.startItemIcon} ${styles.startItemSymbol}`}
-                    aria-hidden="true"
-                  >
-                    ⟳
+    <>
+      {projectsFolder && <ProjectsFolder />}
+      <footer className={styles.taskbar}>
+        <div className={styles.startWrap}>
+          {startOpen && (
+            <>
+              <div
+                className={styles.startOverlay}
+                onClick={() => {
+                  setStartOpen(false);
+                  setProjectsOpen(false);
+                }}
+              />
+              <div className={styles.startMenu} role="menu">
+                <div className={styles.startBanner} aria-hidden="true">
+                  <span>
+                    jonnii<b>95</b>
                   </span>
-                  Shuffle theme…
-                </a>
+                </div>
+                <div className={styles.startList}>
+                  <div
+                    className={styles.startSub}
+                    onMouseEnter={() => setProjectsOpen(true)}
+                    onMouseLeave={() => setProjectsOpen(false)}
+                  >
+                    <button
+                      type="button"
+                      className={`${styles.startItem} ${styles.startItemButton}`}
+                      role="menuitem"
+                      aria-haspopup="menu"
+                      aria-expanded={projectsOpen}
+                      data-open={projectsOpen ? "true" : undefined}
+                      onClick={() => setProjectsOpen(true)}
+                    >
+                      <span className={styles.folderIcon} aria-hidden="true" />
+                      Projects
+                      <span className={styles.startArrow} aria-hidden="true">
+                        ▸
+                      </span>
+                    </button>
+                    {projectsOpen && (
+                      <div className={styles.startFlyout} role="menu" aria-label="Projects">
+                        {PROJECTS.map((p) => (
+                          <a
+                            key={p.name}
+                            href={p.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`${styles.startItem} ${styles.projectItem}`}
+                            role="menuitem"
+                            title={p.blurb}
+                          >
+                            <span className={styles.exeIcon} aria-hidden="true">
+                              {p.name.charAt(0)}
+                            </span>
+                            <span className={styles.projectText}>
+                              <span>{p.name}</span>
+                              <small>{p.short}</small>
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className={styles.startSep} />
+
+                  <div className={styles.startSection}>Themes</div>
+                  {THEMES.map((t) => (
+                    <a
+                      key={t.id}
+                      href={`?theme=${t.id}`}
+                      className={styles.startItem}
+                      role="menuitem"
+                      aria-current={t.id === themeId ? "true" : undefined}
+                    >
+                      <span className={styles.startBullet} aria-hidden="true">
+                        {t.id === themeId ? "●" : "○"}
+                      </span>
+                      {t.label}
+                    </a>
+                  ))}
+
+                  <div className={styles.startSep} />
+
+                  <div className={styles.startSection}>Find me</div>
+                  {SOCIALS.map((social) => (
+                    <a
+                      key={social.label}
+                      href={social.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.startItem}
+                      role="menuitem"
+                    >
+                      <span className={styles.startItemIcon} aria-hidden="true">
+                        {trayGlyph(social.label)}
+                      </span>
+                      {social.label}
+                    </a>
+                  ))}
+
+                  <div className={styles.startSep} />
+
+                  <a href="/" className={styles.startItem} role="menuitem">
+                    <span
+                      className={`${styles.startItemIcon} ${styles.startItemSymbol}`}
+                      aria-hidden="true"
+                    >
+                      ⟳
+                    </span>
+                    Shuffle theme…
+                  </a>
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
+          <button
+            type="button"
+            className={`${styles.start} ${styles.raised} ${
+              startOpen ? styles.startPressed : ""
+            }`}
+            onClick={() => setStartOpen((o) => !o)}
+            aria-haspopup="menu"
+            aria-expanded={startOpen}
+          >
+            <span className={styles.startFlag} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+              <span />
+            </span>
+            Start
+          </button>
+        </div>
+
         <button
           type="button"
-          className={`${styles.start} ${styles.raised} ${
-            startOpen ? styles.startPressed : ""
-          }`}
-          onClick={() => setStartOpen((o) => !o)}
-          aria-haspopup="menu"
-          aria-expanded={startOpen}
+          className={`${styles.taskApp} ${styles.raised}`}
+          onClick={onAppClick}
         >
-          <span className={styles.startFlag} aria-hidden="true">
-            <span />
-            <span />
-            <span />
-            <span />
-          </span>
-          Start
+          <AppIcon variant={iconVariant} />
+          <span className={styles.taskAppText}>{appLabel}</span>
         </button>
-      </div>
 
-      <button
-        type="button"
-        className={`${styles.taskApp} ${styles.raised}`}
-        onClick={onAppClick}
-      >
-        <AppIcon variant={iconVariant} />
-        <span className={styles.taskAppText}>{appLabel}</span>
-      </button>
-
-      <div className={`${styles.tray} ${styles.sunken}`}>
-        <nav className={styles.trayLinks} aria-label="social links">
-          {SOCIALS.map((social) => (
-            <a
-              key={social.label}
-              className={styles.trayLink}
-              href={social.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={social.label}
-              style={{ ["--tray-brand"]: trayBrandColor(social.label) } as CSSProperties}
-            >
-              <FontAwesomeIcon className={styles.trayIcon} icon={social.icon} />
-            </a>
-          ))}
-        </nav>
-        <span className={styles.clock} suppressHydrationWarning>
-          {clock}
-        </span>
-      </div>
-    </footer>
+        <div className={`${styles.tray} ${styles.sunken}`}>
+          <nav className={styles.trayLinks} aria-label="social links">
+            {SOCIALS.map((social) => (
+              <a
+                key={social.label}
+                className={styles.trayLink}
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={social.label}
+                style={{ ["--tray-brand"]: trayBrandColor(social.label) } as CSSProperties}
+              >
+                <FontAwesomeIcon className={styles.trayIcon} icon={social.icon} />
+              </a>
+            ))}
+          </nav>
+          <span className={styles.clock} suppressHydrationWarning>
+            {clock}
+          </span>
+        </div>
+      </footer>
+    </>
   );
 }

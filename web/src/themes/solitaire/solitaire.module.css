@@ -254,7 +254,7 @@
 .dialog {
   position: relative;
   z-index: 2;
-  width: 380px;
+  width: 440px;
   max-width: 100%;
   min-width: 0; /* allow shrink below content min-width as a flex item */
   padding: 3px;
@@ -307,6 +307,66 @@
   font-size: 13px;
   color: var(--w95-dk);
 }
+.hand {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 0 4px;
+}
+.card {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 76px;
+  aspect-ratio: 5 / 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 4px 3px 6px;
+  background: #fff;
+  border: 1px solid #000;
+  border-radius: 5px;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.35);
+  color: #000;
+  text-decoration: none;
+  transform: rotate(var(--tilt, 0deg));
+  transition: transform 0.15s ease;
+}
+.card:hover,
+.card:focus-visible {
+  transform: rotate(0deg) translateY(-6px);
+  outline: 1px dotted #000;
+  outline-offset: 2px;
+  z-index: 1;
+}
+.cardIndex {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font: 700 11px/1 "Times New Roman", Georgia, serif;
+  text-align: center;
+}
+.cardPip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -64%);
+  font-size: 26px;
+  line-height: 1;
+}
+.card.red .cardIndex,
+.card.red .cardPip {
+  color: var(--card-red);
+}
+.cardName {
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  color: #000;
+}
+
 .sshRow {
   display: flex;
   align-items: stretch;

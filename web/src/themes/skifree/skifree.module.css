@@ -161,6 +161,50 @@
   outline-offset: 2px;
 }
 
+/* Trail signs: the projects, further down the run. Anchored at the foot
+   of the post, like the flags. */
+.sign {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: translate(-50%, -100%);
+  text-decoration: none;
+  cursor: pointer;
+}
+.signBoard {
+  padding: 4px 9px;
+  border: 2px solid #000;
+  font: 700 12px/1.2 Arial, Helvetica, sans-serif;
+  color: #fff;
+  background: #1a7f2e;
+  white-space: nowrap;
+}
+.sign[data-slot="1"] .signBoard { background: #f2c230; color: #000; }
+.sign[data-slot="2"] .signBoard { background: #1452c4; }
+.sign[data-slot="3"] .signBoard { background: #000; }
+.sign[data-slot="4"] .signBoard { background: #fff; color: #000; }
+.signPost {
+  width: 3px;
+  height: 18px;
+  background: #000;
+}
+.signNote {
+  position: absolute;
+  top: 100%;
+  margin-top: 2px;
+  padding: 0 3px;
+  font: 11px/1.3 Arial, Helvetica, sans-serif;
+  color: #333;
+  background: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+.sign:hover .signBoard,
+.sign:focus-visible .signBoard {
+  outline: 1px dotted #000;
+  outline-offset: 2px;
+}
+
 /* ----- Stats box ------------------------------------------ */
 .stats {
   position: absolute;
