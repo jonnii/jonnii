@@ -96,6 +96,48 @@
   transform: scaleY(1.7);
 }
 
+/* ----- Projects: a row of little capsules ----------------- */
+.projects {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: clamp(8px, 1.4vw, 14px);
+  width: min(96vw, 1000px);
+  margin-top: calc(-1 * clamp(10px, 3vh, 34px));
+  opacity: 0;
+  animation: fadeUp 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) 0.75s both;
+}
+.project {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  padding: 12px 26px;
+  border-radius: 999px;
+  text-decoration: none;
+  text-align: center;
+  transition: transform 0.18s ease;
+}
+.project:hover,
+.project:focus-visible {
+  transform: translateY(-3px) scale(1.03);
+  outline: none;
+}
+.projectName {
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+}
+.projectShort {
+  margin-top: 3px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
 /* ----- Footer: ssh chip + social capsules ----------------- */
 .footer {
   display: flex;
@@ -233,6 +275,11 @@
   }
   .footer {
     flex-direction: column;
+  }
+  .project {
+    min-width: 0;
+    flex: 1 1 40%;
+    padding: 10px 16px;
   }
   .social {
     width: 44px;

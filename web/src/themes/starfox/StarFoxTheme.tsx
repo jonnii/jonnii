@@ -1,9 +1,9 @@
 "use client";
 import styles from "./starfox.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Press_Start_2P } from "next/font/google";
-import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
+import { WORD, SSH_COMMAND, SOCIALS, PROJECTS, COPY_FEEDBACK_MS } from "../shared/content";
 import { pixelWordMask, pixelWordWidth, PIXEL_GLYPH_H } from "../shared/pixelFont";
 import {
   drawScene,
@@ -24,7 +24,8 @@ import {
 // the autopilot flies. Their shots hurt unless you do a barrel roll (Z or R
 // twice, or a double-tap), which bats them away. Peppy's comm window does the
 // other barrel roll: the whole page. Fly under the letters and the mission
-// ends with a tally, the ssh command and the links.
+// ends with a tally, the ssh command, the links and a course select
+// where every planet is one of the projects.
 
 // Declared here rather than in the root layout so it's only downloaded when
 // this design is the one rolled. Next preloads fonts for every module in the
@@ -45,6 +46,16 @@ const PAGE_ROLL_MS = 1000;
 const DOUBLE_MS = 400;
 const LINE_MS = 5000;
 const POP_MS = 800;
+
+/** Planet colours for the course select, light side then dark side. */
+const PLANETS: [string, string][] = [
+  ["#8fe0a8", "#1b5f48"],
+  ["#ffd860", "#b86a00"],
+  ["#a8d0ff", "#24467a"],
+  ["#d8a8ff", "#552670"],
+  ["#f0f0f0", "#5a6070"],
+  ["#ff9a80", "#801818"],
+];
 
 type Pilot = "PEPPY" | "FALCO" | "SLIPPY";
 type Line = [Pilot, string];
@@ -189,6 +200,7 @@ export default function StarFoxTheme() {
   const [line, setLine] = useState<Line>(IDLE_LINES[0]);
   const [pops, setPops] = useState<Pop[]>([]);
   const [tally, setTally] = useState<Tally | null>(null);
+  const [coursesOpen, setCoursesOpen] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const say = useCallback((next: Line) => {
@@ -410,6 +422,33 @@ export default function StarFoxTheme() {
     </nav>
   );
 
+  const courses = (
+    <nav className={styles.courses} aria-label="Projects">
+      <p className={styles.coursesTitle}>SELECT COURSE</p>
+      <ol className={styles.map}>
+        {PROJECTS.map((p, i) => {
+          const [lit, dark] = PLANETS[i % PLANETS.length];
+          return (
+            <li key={p.name}>
+              <a
+                className={styles.planet}
+                href={p.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={p.blurb}
+                style={{ ["--lit"]: lit, ["--dark"]: dark } as CSSProperties}
+              >
+                <span className={styles.orb} aria-hidden="true" />
+                <span className={styles.planetName}>{p.name}</span>
+                <span className={styles.planetShort}>{p.short}</span>
+              </a>
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+
   const pad = (n: number) => String(n).padStart(3, "0");
 
   return (
@@ -464,10 +503,23 @@ export default function StarFoxTheme() {
             </button>
 
             <div className={styles.links}>
+              <button className={styles.coursesBtn} onClick={() => setCoursesOpen(true)}>
+                COURSE SELECT ▸
+              </button>
               {sshButton}
               {rings}
             </div>
           </>
+        )}
+
+        {!tally && coursesOpen && (
+          <section className={`${styles.complete} ${styles.courseScreen}`} aria-label="Course select">
+            <p className={styles.course}>LYLAT SYSTEM · {PROJECTS.length} COURSES</p>
+            {courses}
+            <button className={styles.again} onClick={() => setCoursesOpen(false)}>
+              RETURN TO MISSION
+            </button>
+          </section>
         )}
 
         {tally && (
@@ -488,6 +540,7 @@ export default function StarFoxTheme() {
               <dt>RANK</dt>
               <dd className={styles.rank}>{rank(tally.hits)}</dd>
             </dl>
+            {courses}
             {sshButton}
             {rings}
             <button className={styles.again} onClick={flyAgain}>

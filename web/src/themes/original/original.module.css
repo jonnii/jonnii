@@ -78,7 +78,8 @@
 .row {
   display: flex;
   gap: 8px;
-  font-size: clamp(28px, 8vw, 96px);
+  /* Leave room below the fold for the projects listing */
+  font-size: clamp(28px, min(8vw, 9vh), 96px);
   font-weight: 400;
   line-height: 1;
   letter-spacing: -0.02em;
@@ -239,6 +240,45 @@
   margin-top: 24px;
 }
 
+.projects {
+  width: min(640px, 100%);
+  margin-top: 28px;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", "Segoe UI Mono", Menlo, Monaco, Consolas, monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.projectsCmd {
+  font: inherit;
+  margin: 0 0 6px;
+  color: var(--muted-strong, var(--foreground));
+}
+.projectList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.projectLink {
+  display: grid;
+  grid-template-columns: 9.5em 1fr;
+  gap: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: inherit;
+  text-decoration: none;
+}
+.projectLink:hover,
+.projectLink:focus-visible {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  outline: none;
+}
+.projectName {
+  color: var(--accent);
+  font-weight: 600;
+}
+.projectBlurb {
+  color: var(--muted, var(--foreground));
+}
+
 .terminal {
   display: flex;
   align-items: center;
@@ -314,6 +354,12 @@
 
   .row {
     gap: 4px;
+  }
+
+  .projectLink {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 4px 8px;
   }
 
   .footer {

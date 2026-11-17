@@ -2,11 +2,20 @@
 import styles from "./solitaire.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
+import { WORD, SSH_COMMAND, SOCIALS, PROJECTS, COPY_FEEDBACK_MS } from "../shared/content";
 import CardCascade from "./CardCascade";
 import Taskbar from "../shared/Taskbar";
 
 const THEME_ID = "solitaire";
+
+// The projects are dealt as a little hand of face cards, best first.
+const HAND: { rank: string; suit: string; red: boolean }[] = [
+  { rank: "A", suit: "♥", red: true },
+  { rank: "K", suit: "♣", red: false },
+  { rank: "Q", suit: "♦", red: true },
+  { rank: "J", suit: "♠", red: false },
+  { rank: "10", suit: "♥", red: true },
+];
 
 function trayGlyph(label: string): string {
   if (label === "LinkedIn") return "in";
@@ -145,7 +154,36 @@ export default function SolitaireTheme() {
                   <span className={styles.red}>♦</span>
                   <span>♣</span>
                 </div>
-                <p className={styles.blurb}>You win. Now come say hello.</p>
+                <p className={styles.blurb}>You win. Here&rsquo;s what I&rsquo;m working on.</p>
+
+                <nav className={styles.hand} aria-label="projects">
+                  {PROJECTS.map((p, i) => {
+                    const card = HAND[i % HAND.length];
+                    return (
+                      <a
+                        key={p.name}
+                        className={`${styles.card} ${card.red ? styles.red : ""}`}
+                        href={p.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title={`${p.name}: ${p.blurb}`}
+                        style={{ ["--tilt"]: `${(i - (PROJECTS.length - 1) / 2) * 3}deg` } as CSSProperties}
+                      >
+                        <span className={styles.cardIndex} aria-hidden="true">
+                          {card.rank}
+                          <br />
+                          {card.suit}
+                        </span>
+                        <span className={styles.cardPip} aria-hidden="true">
+                          {card.suit}
+                        </span>
+                        <span className={styles.cardName}>{p.name}</span>
+                      </a>
+                    );
+                  })}
+                </nav>
+
+                <p className={styles.blurb}>Now come say hello.</p>
 
                 <div className={styles.sshRow}>
                   <span className={styles.sshLabel}>Connect:</span>
@@ -222,6 +260,7 @@ export default function SolitaireTheme() {
         appLabel="Solitaire"
         iconVariant="card"
         onAppClick={() => setDialogOpen(true)}
+        projectsFolder={false}
       />
     </main>
   );

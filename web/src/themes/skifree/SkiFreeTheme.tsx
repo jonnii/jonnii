@@ -1,13 +1,14 @@
 "use client";
 import styles from "./skifree.module.css";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
+import { WORD, SSH_COMMAND, SOCIALS, PROJECTS, COPY_FEEDBACK_MS } from "../shared/content";
 import { pixelWordMask, pixelWordWidth, PIXEL_GLYPH_H } from "../shared/pixelFont";
 import Taskbar from "../shared/Taskbar";
 import { buildSprites, type SpriteName, type SpriteSheet } from "./sprites";
 
 // The trees *are* the wordmark: the top of the slope is a forest planted in
-// the shape of "jonnii", with the socials as slalom flags just below it. On
+// the shape of "jonnii", with the socials as slalom flags just below it and the projects as trail
+// signs further down. On
 // load the skier sets off on autopilot, threads the gap between the n's and
 // carves on down the hill until the yeti shows up and eats him, and then it
 // all starts again. Move the mouse over the slope (or press an arrow key) to
@@ -105,7 +106,11 @@ const skierScreenY = (l: Layout) => Math.round(l.h * 0.2);
 const wordTop = (l: Layout) => 2.5 * l.cell;
 const wordLeft = (l: Layout) => -(WORD_COLS * l.cell) / 2;
 const wordBottom = (l: Layout) => wordTop(l) + PIXEL_GLYPH_H * l.cell;
-const startZoneEnd = (l: Layout) => wordBottom(l) + 6 * l.cell;
+/** Where the trail signs (the projects) start, below the flags. */
+const signsTop = (l: Layout) => wordBottom(l) + 6.5 * l.cell + 44;
+const SIGN_STEP = 3.2;
+/** Keep the random scatter clear of the hand-placed top: forest, flags and signs. */
+const startZoneEnd = (l: Layout) => signsTop(l) + (PROJECTS.length + 0.5) * SIGN_STEP * l.cell;
 /** The gap between the two n's: the autopilot's way through the forest. */
 const gapX = (l: Layout) => wordLeft(l) + 13.5 * l.cell;
 
@@ -148,6 +153,15 @@ function flagSpots(l: Layout): { x: number; y: number }[] {
     { x: 0, y: y + 1.5 * l.cell },
     { x: dx, y },
   ];
+}
+
+/** Where the trail signs (the projects) stand, zig-zagging down the run. */
+function signSpots(l: Layout): { x: number; y: number }[] {
+  const dx = Math.min(l.w * 0.2, 6 * l.cell);
+  return PROJECTS.map((_, i) => ({
+    x: i % 2 === 0 ? -dx : dx,
+    y: signsTop(l) + i * SIGN_STEP * l.cell,
+  }));
 }
 
 // Deterministic per-chunk scatter, so the slope is the same every time you pass.
@@ -592,6 +606,7 @@ export default function SkiFreeTheme() {
   };
 
   const flags = layout ? flagSpots(layout) : [];
+  const signs = layout ? signSpots(layout) : [];
 
   return (
     <main className={styles.desktop}>
@@ -644,6 +659,26 @@ export default function SkiFreeTheme() {
                 >
                   <span className={styles.flagCloth}>{social.label}</span>
                   <span className={styles.flagPole} aria-hidden="true" />
+                </a>
+              );
+            })}
+            {signs.map((spot, i) => {
+              const project = PROJECTS[i];
+              if (!project) return null;
+              return (
+                <a
+                  key={project.name}
+                  className={styles.sign}
+                  style={{ left: spot.x, top: spot.y }}
+                  href={project.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  data-slot={i % 5}
+                  title={project.blurb}
+                >
+                  <span className={styles.signBoard}>{project.name}</span>
+                  <span className={styles.signPost} aria-hidden="true" />
+                  <span className={styles.signNote}>{project.short}</span>
                 </a>
               );
             })}

@@ -1,7 +1,7 @@
 "use client";
 import styles from "./teletext.module.css";
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
+import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { WORD, SSH_COMMAND, SOCIALS, PROJECTS, COPY_FEEDBACK_MS } from "../shared/content";
 import { pixelWordMask, pixelWordWidth, PIXEL_GLYPH_H } from "../shared/pixelFont";
 import { THEMES } from "../registry";
 import Remote, { type RemoteAction } from "./Remote";
@@ -65,13 +65,14 @@ const WORD_CELLS = (() => {
 
 // Pages that exist. Anything else and the header rolls forever, looking for it.
 const SOCIAL_PAGES = SOCIALS.map((s, i) => ({ ...s, page: 301 + i }));
+const PROJECT_PAGES = PROJECTS.map((p, i) => ({ ...p, page: 401 + i }));
 const CHANNELS = THEMES.filter((t) => t.id !== "teletext").map((t, i) => ({ ...t, page: 501 + i }));
-const PAGE_LIST = [100, 200, 300, 500];
+const PAGE_LIST = [100, 200, 300, 400, 500];
 const PAGES = new Set(PAGE_LIST);
 
 const FASTEXT: { colour: Colour; label: string; page: number; key: string }[] = [
   { colour: RED, label: "Connect", page: 200, key: "r" },
-  { colour: GREEN, label: "Links", page: 300, key: "g" },
+  { colour: GREEN, label: "Projects", page: 400, key: "g" },
   { colour: YELLOW, label: "Channels", page: 500, key: "y" },
   { colour: CYAN, label: "Index", page: 100, key: "c" },
 ];
@@ -156,10 +157,10 @@ export default function TeletextTheme() {
 
   const goto = useCallback((n: number) => {
     setEntry("");
-    // Socials and channels are sub-pages that leave the service straight away.
-    const social = SOCIAL_PAGES.find((s) => s.page === n);
-    if (social) {
-      window.open(social.href, "_blank", "noopener,noreferrer");
+    // Socials, projects and channels are sub-pages that leave the service straight away.
+    const external = SOCIAL_PAGES.find((s) => s.page === n) ?? PROJECT_PAGES.find((p) => p.page === n);
+    if (external) {
+      window.open(external.href, "_blank", "noopener,noreferrer");
       return;
     }
     const channel = CHANNELS.find((c) => c.page === n);
@@ -320,6 +321,7 @@ export default function TeletextTheme() {
           ))}
         </h1>
         {indexLink(`Connect to ${WORD}`, 200, GREEN)}
+        {indexLink("Projects", 400)}
         {indexLink("Links", 300)}
         {socialLinks("   ", WHITE)}
         {indexLink("Other channels", 500)}
@@ -393,6 +395,27 @@ export default function TeletextTheme() {
         {row()}
         {row(<C c={GREEN}> Key in a page number to leave</C>)}
         {row(<C c={GREEN}> {WORD.toUpperCase()}FAX.</C>)}
+      </>
+    );
+  } else if (page === 400) {
+    body = (
+      <>
+        {row(<C c={WHITE}> PROJECTS </C>, { dh: true, bg: MAGENTA })}
+        {row()}
+        {row(<C c={WHITE}> Things {WORD} is building:</C>)}
+        {row()}
+        {PROJECT_PAGES.map((p) => (
+          <Fragment key={p.page}>
+            {row(
+              <a className={styles.link} href={p.href} target="_blank" rel="noopener noreferrer" title={p.blurb}>
+                {" "}
+                <C c={CYAN}>{leader(p.name, p.page)}</C>
+                <C c={YELLOW}>{p.page}</C>
+              </a>
+            )}
+            {row(<C c={GREEN}>{`   ${p.short}`}</C>)}
+          </Fragment>
+        ))}
       </>
     );
   } else {
