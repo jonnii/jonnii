@@ -4,7 +4,7 @@ import type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 // The shared "DNA" that every theme reinterprets in its own visual language.
 // Themes differ wildly in layout, type, and motion — but they all express
 // exactly this content: the wordmark, the ssh invitation, the socials and
-// the projects.
+// a way to the projects page (app/projects), which has a look of its own.
 
 export const WORD = "jonnii";
 
@@ -50,7 +50,7 @@ export interface Project {
   kind: string;
 }
 
-// The projects every theme shows, most important first.
+// The projects on the projects page, most important first.
 export const PROJECTS: Project[] = [
   {
     name: "Good Grieves",

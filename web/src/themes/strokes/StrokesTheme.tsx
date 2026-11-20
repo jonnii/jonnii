@@ -1,10 +1,11 @@
 "use client";
 import styles from "./strokes.module.css";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Archivo, Wire_One } from "next/font/google";
 import CapsuleBurst from "./CapsuleBurst";
-import { WORD, SSH_COMMAND, SOCIALS, PROJECTS, COPY_FEEDBACK_MS } from "../shared/content";
+import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
 
 // This design's typefaces. Declared here rather than in the root layout so
 // they're only downloaded when this design is the one rolled. Next preloads
@@ -83,24 +84,15 @@ export default function StrokesTheme() {
       </h1>
 
       <nav className={styles.projects} aria-label="projects">
-        {PROJECTS.map((p, i) => {
-          // Start on green so the row doesn't open on the same blue as the "j".
-          const ci = i + 1;
-          return (
-            <a
-              key={p.name}
-              className={styles.project}
-              href={p.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={p.blurb}
-              style={{ background: barColor(ci), color: knockoutColor(ci) } as CSSProperties}
-            >
-              <span className={styles.projectName}>{p.name}</span>
-              <span className={styles.projectShort}>{p.short}</span>
-            </a>
-          );
-        })}
+        {/* Green, so the capsule doesn't open on the same blue as the "j". */}
+        <Link
+          className={styles.project}
+          href="/projects"
+          style={{ background: barColor(1), color: knockoutColor(1) } as CSSProperties}
+        >
+          <span className={styles.projectName}>Projects</span>
+          <span className={styles.projectShort}>choose your fighter</span>
+        </Link>
       </nav>
 
       <div className={styles.footer}>

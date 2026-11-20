@@ -1,6 +1,6 @@
 "use client";
 import styles from "./teletext.module.css";
-import { Fragment, useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { WORD, SSH_COMMAND, SOCIALS, PROJECTS, COPY_FEEDBACK_MS } from "../shared/content";
 import { pixelWordMask, pixelWordWidth, PIXEL_GLYPH_H } from "../shared/pixelFont";
 import { THEMES } from "../registry";
@@ -65,7 +65,16 @@ const WORD_CELLS = (() => {
 
 // Pages that exist. Anything else and the header rolls forever, looking for it.
 const SOCIAL_PAGES = SOCIALS.map((s, i) => ({ ...s, page: 301 + i }));
-const PROJECT_PAGES = PROJECTS.map((p, i) => ({ ...p, page: 401 + i }));
+/** P401 leaves for the projects page (a character select of its own). */
+const PROJECTS_PAGE = 401;
+/** The roster on P400, wrapped to the 40-column page. */
+const PROJECT_LINES = PROJECTS.map((p) => p.name).reduce<string[]>((lines, name, i, all) => {
+  const piece = name + (i < all.length - 1 ? "," : ".");
+  const last = lines[lines.length - 1];
+  if (last !== undefined && last.length + 1 + piece.length <= 36) lines[lines.length - 1] = `${last} ${piece}`;
+  else lines.push(piece);
+  return lines;
+}, []);
 const CHANNELS = THEMES.filter((t) => t.id !== "teletext").map((t, i) => ({ ...t, page: 501 + i }));
 const PAGE_LIST = [100, 200, 300, 400, 500];
 const PAGES = new Set(PAGE_LIST);
@@ -158,9 +167,13 @@ export default function TeletextTheme() {
   const goto = useCallback((n: number) => {
     setEntry("");
     // Socials, projects and channels are sub-pages that leave the service straight away.
-    const external = SOCIAL_PAGES.find((s) => s.page === n) ?? PROJECT_PAGES.find((p) => p.page === n);
+    const external = SOCIAL_PAGES.find((s) => s.page === n);
     if (external) {
       window.open(external.href, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (n === PROJECTS_PAGE) {
+      window.location.href = "/projects";
       return;
     }
     const channel = CHANNELS.find((c) => c.page === n);
@@ -404,18 +417,15 @@ export default function TeletextTheme() {
         {row()}
         {row(<C c={WHITE}> Things {WORD} is building:</C>)}
         {row()}
-        {PROJECT_PAGES.map((p) => (
-          <Fragment key={p.page}>
-            {row(
-              <a className={styles.link} href={p.href} target="_blank" rel="noopener noreferrer" title={p.blurb}>
-                {" "}
-                <C c={CYAN}>{leader(p.name, p.page)}</C>
-                <C c={YELLOW}>{p.page}</C>
-              </a>
-            )}
-            {row(<C c={GREEN}>{`   ${p.short}`}</C>)}
-          </Fragment>
-        ))}
+        {row(
+          <a className={styles.link} href="/projects">
+            {" "}
+            <C c={CYAN}>{leader("Choose your fighter", PROJECTS_PAGE)}</C>
+            <C c={YELLOW}>{PROJECTS_PAGE}</C>
+          </a>
+        )}
+        {row()}
+        {PROJECT_LINES.map((line, i) => row(<C c={GREEN}>{`   ${line}`}</C>, { key: i }))}
       </>
     );
   } else {

@@ -1,0 +1,436 @@
+/* The projects page: a fighting-game character select in sumi ink. */
+
+.page {
+  --ink: #15120f;
+  --paper: #f4ecdc;
+  --red: #d7263d;
+
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-barlow), "Arial Narrow", sans-serif;
+  overflow-x: clip;
+}
+
+.page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  background:
+    radial-gradient(ellipse at 15% 0%, #3a2a1c, transparent 55%),
+    radial-gradient(ellipse at 100% 100%, #2a1a14, transparent 50%);
+}
+
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/* ---- Header ---------------------------------------------- */
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 32px 12px;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 6px;
+  color: color-mix(in srgb, var(--paper) 60%, transparent);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.back:hover,
+.back:focus-visible {
+  color: var(--paper);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-anton), Impact, sans-serif;
+  font-weight: 400;
+  font-size: clamp(28px, 4vw, 54px);
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.title em {
+  font-style: normal;
+  color: var(--red);
+}
+
+.sun {
+  flex-shrink: 0;
+  width: 0.8em;
+  height: 0.8em;
+  border-radius: 50%;
+  background: var(--red);
+}
+
+.round {
+  margin-right: 48px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--paper) 45%, transparent);
+}
+
+.dojo {
+  position: absolute;
+  top: 14px;
+  right: 28px;
+  font-family: var(--font-yuji), serif;
+  font-size: 26px;
+  letter-spacing: 6px;
+  color: var(--red);
+  writing-mode: vertical-rl;
+}
+
+/* ---- The roster: equal-height bands ---------------------- */
+.roster {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-auto-rows: minmax(150px, 1fr);
+  padding-bottom: 8px;
+}
+
+.band {
+  --c: var(--paper);
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: inherit;
+  isolation: isolate;
+  outline: none;
+}
+
+/* Stage and ghost name are clipped to the band; the fighter is not. */
+.clip {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  border-top: 1px solid color-mix(in srgb, var(--paper) 7%, transparent);
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  background: var(--c);
+  mask: var(--stage) center bottom / cover no-repeat;
+  -webkit-mask: var(--stage) center bottom / cover no-repeat;
+  opacity: 0.13;
+  transition: opacity 0.3s;
+}
+
+.ghost {
+  position: absolute;
+  top: 50%;
+  left: 22%;
+  transform: translateY(-50%);
+  font-family: var(--font-anton), Impact, sans-serif;
+  font-size: clamp(90px, 13vw, 210px);
+  line-height: 1;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: transparent;
+  -webkit-text-stroke: 1.5px color-mix(in srgb, var(--paper) 5%, transparent);
+  transition: -webkit-text-stroke-color 0.3s;
+}
+
+/* Brush-stroke slab with the kanji numeral and the stamp */
+.slab {
+  position: relative;
+  flex-shrink: 0;
+  align-self: stretch;
+  width: clamp(130px, 17vw, 240px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.slab::before {
+  content: "";
+  position: absolute;
+  inset: 6px -26px 6px 0;
+  z-index: -1;
+  background: var(--c);
+  filter: url(#brush);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 40px) 100%, 0 100%);
+  opacity: 0.22;
+  transition: opacity 0.3s;
+}
+
+.kanji {
+  font-family: var(--font-yuji), serif;
+  font-size: clamp(46px, 5vw, 72px);
+  line-height: 1;
+  color: var(--c);
+  transition: color 0.3s;
+}
+
+.hanko {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--red);
+  border-radius: 6px;
+  color: var(--red);
+  background: var(--paper);
+  box-shadow:
+    inset 0 0 0 2px var(--paper),
+    inset 0 0 0 4px var(--red);
+  transform: rotate(-8deg);
+}
+
+.hanko svg {
+  width: 60%;
+}
+
+.info {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 0 52px;
+}
+
+.name {
+  font-family: var(--font-anton), Impact, sans-serif;
+  font-size: clamp(34px, 4.8vw, 72px);
+  line-height: 0.95;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 0 3px 0 var(--ink);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--paper) 55%, transparent);
+}
+
+.meta i {
+  width: 22px;
+  height: 3px;
+  background: var(--c);
+}
+
+.blurb {
+  margin-top: 6px;
+  font-weight: 500;
+  font-size: clamp(16px, 1.4vw, 21px);
+  color: color-mix(in srgb, var(--paper) 87%, transparent);
+}
+
+/* The fighter: a sticker-outlined SVG that bobs in its idle stance and
+   steps up in front of a red sun when picked. */
+.fighter {
+  position: absolute;
+  right: clamp(250px, 22vw, 330px);
+  bottom: 6px;
+  z-index: 1;
+  height: 118%;
+  aspect-ratio: 240 / 280;
+  transform-origin: 50% 100%;
+  transition: transform 0.3s;
+  animation: idle 1.6s ease-in-out infinite;
+  animation-delay: var(--delay);
+  filter: drop-shadow(2px 0 0 var(--paper)) drop-shadow(-2px 0 0 var(--paper))
+    drop-shadow(0 2px 0 var(--paper)) drop-shadow(0 -2px 0 var(--paper))
+    drop-shadow(6px 6px 0 #0009);
+}
+
+.fighter img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+
+.fighter::before {
+  content: "";
+  position: absolute;
+  top: 52%;
+  left: 50%;
+  z-index: -1;
+  width: 92%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--red);
+  transform: translate(-50%, -50%) scale(0);
+  transition: transform 0.3s;
+}
+
+@keyframes idle {
+  50% {
+    translate: 0 -4px;
+  }
+}
+
+.special {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  width: clamp(220px, 20vw, 300px);
+  padding-right: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.special small {
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--c);
+}
+
+.special b {
+  font-style: italic;
+  font-weight: 800;
+  font-size: clamp(18px, 1.8vw, 28px);
+  text-transform: uppercase;
+}
+
+.special code {
+  font-family: "DejaVu Sans", "Segoe UI Symbol", sans-serif;
+  font-size: 15px;
+  letter-spacing: 2px;
+  color: color-mix(in srgb, var(--paper) 55%, transparent);
+}
+
+/* ---- Selected fighter ------------------------------------ */
+.band[data-selected] .slab::before {
+  opacity: 1;
+}
+
+.band[data-selected] .kanji {
+  color: var(--ink);
+}
+
+.band[data-selected] .stage {
+  opacity: 0.32;
+}
+
+.band[data-selected] .ghost {
+  -webkit-text-stroke-color: color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+.band[data-selected] .fighter {
+  transform: scale(1.06) rotate(-2deg);
+}
+
+.band[data-selected] .fighter::before {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.band:focus-visible .name {
+  text-decoration: underline;
+  text-decoration-color: var(--c);
+  text-underline-offset: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fighter {
+    animation: none;
+  }
+}
+
+/* ---- Phones ---------------------------------------------- */
+@media (max-width: 760px) {
+  .header {
+    padding: 14px 16px 10px;
+  }
+
+  .round,
+  .dojo,
+  .special,
+  .host {
+    display: none;
+  }
+
+  .roster {
+    grid-auto-rows: 156px;
+  }
+
+  .slab {
+    width: 78px;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .slab::before {
+    inset: 6px -12px 6px 0;
+    clip-path: polygon(0 0, 100% 0, calc(100% - 20px) 100%, 0 100%);
+  }
+
+  .kanji {
+    font-size: 40px;
+  }
+
+  .hanko {
+    width: 30px;
+    height: 30px;
+    border-width: 2px;
+  }
+
+  .info {
+    padding: 0 128px 0 22px;
+  }
+
+  .ghost {
+    left: 25%;
+    font-size: 110px;
+  }
+
+  .name {
+    font-size: 32px;
+  }
+
+  .meta {
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+
+  .blurb {
+    font-size: 15px;
+    line-height: 1.15;
+  }
+
+  .fighter {
+    right: 6px;
+    bottom: 6px;
+    height: 88%;
+  }
+}
