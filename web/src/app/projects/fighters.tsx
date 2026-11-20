@@ -13,7 +13,9 @@ export interface Fighter {
   icon: ReactNode;
 }
 
-const KANJI = ["壱", "弐", "参", "肆", "伍", "陸", "漆", "捌", "玖", "拾"];
+// One character per band, read top to bottom like vertical Japanese:
+// 珈琲中毒者, "coffee addict". Past the fifth band, plain numbers.
+const KANJI = ["珈", "琲", "中", "毒", "者"];
 export const kanjiNumeral = (i: number) => KANJI[i] ?? String(i + 1);
 
 export const FIGHTERS: Record<string, Fighter> = {
