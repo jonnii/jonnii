@@ -16,6 +16,9 @@ const barlow = Barlow_Condensed({
 // Only used for the five kanji numerals, so no subset to preload.
 const yuji = Yuji_Syuku({ weight: "400", variable: "--font-yuji", preload: false });
 
+/** "↓↘→ + P" as one key per symbol. */
+const inputKeys = (input: string) => Array.from(input.replace(/\s+/g, ""));
+
 // A character select: one full-width band per project. Each project is a
 // fighter (art in /public/projects) standing on its own stage, with an ink
 // brush slab, a kanji numeral and a stamp. Hover, focus or the arrow keys
@@ -45,6 +48,18 @@ export default function ProjectsSelect() {
           <feTurbulence type="fractalNoise" baseFrequency="0.04 0.8" numOctaves="3" seed="7" />
           <feDisplacementMap in="SourceGraphic" scale="18" />
         </filter>
+        {/* A softer wobble, for the sun and the dividers */}
+        <filter id="ink">
+          <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="3" />
+          <feDisplacementMap in="SourceGraphic" scale="9" />
+        </filter>
+        <filter id="grain">
+          <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" stitchTiles="stitch" />
+          <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0" />
+        </filter>
+      </svg>
+      <svg className={styles.grain} aria-hidden="true">
+        <rect width="100%" height="100%" filter="url(#grain)" />
       </svg>
 
       <header className={styles.header}>
@@ -58,7 +73,8 @@ export default function ProjectsSelect() {
           </h1>
         </div>
         <p className={styles.round}>
-          {PROJECTS.length} projects · round 1
+          <span>{PROJECTS.length} projects</span>
+          <b>Round 1</b>
         </p>
         <span className={styles.dojo} aria-hidden="true">
           道場
@@ -86,15 +102,19 @@ export default function ProjectsSelect() {
                   "--c": f.color,
                   "--stage": `url(/projects/stage-${p.slug}.svg)`,
                   "--delay": `${i * -0.3}s`,
+                  "--i": i,
                 } as CSSProperties
               }
             >
               <span className={styles.clip} aria-hidden="true">
+                <span className={styles.wash} />
                 <span className={styles.stage} />
                 <span className={styles.ghost}>{p.name}</span>
+                <span className={styles.rays} />
               </span>
 
               <span className={styles.slab} aria-hidden="true">
+                <span className={styles.cursor}>1P</span>
                 <span className={styles.kanji}>{kanjiNumeral(i)}</span>
                 <span className={styles.hanko}>{f.icon}</span>
               </span>
@@ -117,12 +137,36 @@ export default function ProjectsSelect() {
               <span className={styles.special}>
                 <small>Special move</small>
                 <b>{f.move}</b>
-                <code>{f.input}</code>
+                <span className={styles.input} aria-label={f.input}>
+                  {inputKeys(f.input).map((k, n) =>
+                    k === "+" ? (
+                      <span key={n} className={styles.plus} aria-hidden="true">
+                        +
+                      </span>
+                    ) : (
+                      <kbd key={n} data-button={/[A-Z]/.test(k) ? "true" : undefined} aria-hidden="true">
+                        {k}
+                      </kbd>
+                    )
+                  )}
+                </span>
+                <span className={styles.go}>Fight ▸</span>
               </span>
             </a>
           );
         })}
       </main>
+
+      <footer className={styles.hint} aria-hidden="true">
+        <span>
+          <kbd>↑</kbd>
+          <kbd>↓</kbd> Select
+        </span>
+        <span>
+          <kbd>↵</kbd> Fight
+        </span>
+        <span className={styles.credit}>© jonnii dojo</span>
+      </footer>
     </div>
   );
 }

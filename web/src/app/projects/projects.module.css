@@ -32,6 +32,18 @@
   height: 0;
 }
 
+/* Paper grain over everything */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.1;
+  mix-blend-mode: overlay;
+}
+
 /* ---- Header ---------------------------------------------- */
 .header {
   position: relative;
@@ -69,8 +81,28 @@
 }
 
 .title em {
+  position: relative;
   font-style: normal;
   color: var(--red);
+}
+
+.title em::after {
+  content: "";
+  position: absolute;
+  right: -4px;
+  bottom: -0.16em;
+  left: -4px;
+  height: 0.09em;
+  background: var(--red);
+  filter: url(#ink);
+  transform-origin: 0 50%;
+  animation: stroke 0.5s 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes stroke {
+  from {
+    transform: scaleX(0);
+  }
 }
 
 .sun {
@@ -82,12 +114,24 @@
 }
 
 .round {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   margin-right: 48px;
   font-weight: 700;
   font-size: 13px;
   letter-spacing: 4px;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--paper) 45%, transparent);
+}
+
+.round b {
+  padding: 3px 10px 3px 14px;
+  font-style: italic;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--paper);
+  clip-path: polygon(8px 0, 100% 0, calc(100% - 8px) 100%, 0 100%);
 }
 
 .dojo {
@@ -107,7 +151,6 @@
   flex: 1;
   display: grid;
   grid-auto-rows: minmax(150px, 1fr);
-  padding-bottom: 8px;
 }
 
 .band {
@@ -118,6 +161,28 @@
   color: inherit;
   isolation: isolate;
   outline: none;
+  animation: enter 0.55s calc(var(--i) * 70ms) cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateX(-48px);
+  }
+}
+
+/* A dry-brush rule between bands */
+.band::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  right: 0;
+  left: 0;
+  z-index: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--paper), transparent 85%);
+  opacity: 0.16;
+  filter: url(#ink);
 }
 
 /* Stage and ghost name are clipped to the band; the fighter is not. */
@@ -126,7 +191,36 @@
   inset: 0;
   z-index: -1;
   overflow: hidden;
-  border-top: 1px solid color-mix(in srgb, var(--paper) 7%, transparent);
+}
+
+/* A wash of the fighter's colour, bleeding in from the slab */
+.wash {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--c) 26%, transparent), transparent 62%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+/* Speed lines bursting out from behind the fighter */
+.rays {
+  position: absolute;
+  top: 50%;
+  right: calc(clamp(250px, 22vw, 330px) - 170px);
+  width: 520px;
+  aspect-ratio: 1;
+  background: repeating-conic-gradient(
+    from 0deg,
+    color-mix(in srgb, var(--c) 55%, transparent) 0 2.2deg,
+    transparent 2.2deg 9deg
+  );
+  mask: radial-gradient(circle, transparent 22%, #000 23%, transparent 68%);
+  -webkit-mask: radial-gradient(circle, transparent 22%, #000 23%, transparent 68%);
+  opacity: 0;
+  transform: translateY(-50%) scale(0.6);
+  transition:
+    opacity 0.3s,
+    transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .stage {
@@ -179,6 +273,23 @@
   transition: opacity 0.3s;
 }
 
+/* The player-one cursor */
+.cursor {
+  position: absolute;
+  top: 12px;
+  left: 0;
+  padding: 2px 10px 2px 8px;
+  font-style: italic;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--paper);
+  background: var(--red);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 7px) 100%, 0 100%);
+  transform: translateX(-110%);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 .kanji {
   font-family: var(--font-yuji), serif;
   font-size: clamp(46px, 5vw, 72px);
@@ -200,6 +311,7 @@
     inset 0 0 0 2px var(--paper),
     inset 0 0 0 4px var(--red);
   transform: rotate(-8deg);
+  transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1);
 }
 
 .hanko svg {
@@ -223,6 +335,11 @@
   letter-spacing: 1px;
   text-transform: uppercase;
   text-shadow: 0 3px 0 var(--ink);
+  opacity: 0.72;
+  transform-origin: 0 60%;
+  transition:
+    opacity 0.3s,
+    transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .meta {
@@ -241,6 +358,7 @@
   width: 22px;
   height: 3px;
   background: var(--c);
+  transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .blurb {
@@ -257,18 +375,33 @@
   right: clamp(250px, 22vw, 330px);
   bottom: 6px;
   z-index: 1;
-  height: 118%;
+  height: 108%;
   aspect-ratio: 240 / 280;
   transform-origin: 50% 100%;
   transition: transform 0.3s;
   animation: idle 1.6s ease-in-out infinite;
   animation-delay: var(--delay);
-  filter: drop-shadow(2px 0 0 var(--paper)) drop-shadow(-2px 0 0 var(--paper))
-    drop-shadow(0 2px 0 var(--paper)) drop-shadow(0 -2px 0 var(--paper))
-    drop-shadow(6px 6px 0 #0009);
+}
+
+/* Ground shadow */
+.fighter::after {
+  content: "";
+  position: absolute;
+  right: 12%;
+  bottom: -1%;
+  left: 12%;
+  z-index: -1;
+  height: 7%;
+  border-radius: 50%;
+  background: #000;
+  opacity: 0.45;
+  filter: blur(3px);
 }
 
 .fighter img {
+  filter: drop-shadow(2px 0 0 var(--paper)) drop-shadow(-2px 0 0 var(--paper))
+    drop-shadow(0 2px 0 var(--paper)) drop-shadow(0 -2px 0 var(--paper))
+    drop-shadow(5px 5px 0 #0009);
   display: block;
   width: 100%;
   height: 100%;
@@ -284,9 +417,9 @@
   width: 92%;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: var(--red);
+  background: radial-gradient(circle at 38% 32%, #f0475c, var(--red) 55%, #a8162b);
   transform: translate(-50%, -50%) scale(0);
-  transition: transform 0.3s;
+  transition: transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1);
 }
 
 @keyframes idle {
@@ -322,11 +455,53 @@
   text-transform: uppercase;
 }
 
-.special code {
+.input {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 6px;
+}
+
+.input kbd {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1.5px solid color-mix(in srgb, var(--paper) 40%, transparent);
+  border-radius: 50%;
   font-family: "DejaVu Sans", "Segoe UI Symbol", sans-serif;
-  font-size: 15px;
-  letter-spacing: 2px;
+  font-size: 12px;
+  line-height: 1;
+  color: color-mix(in srgb, var(--paper) 80%, transparent);
+}
+
+.input kbd[data-button] {
+  border-color: var(--c);
+  font-family: inherit;
+  font-weight: 800;
+  color: var(--ink);
+  background: var(--c);
+}
+
+.plus {
+  margin: 0 3px;
+  font-weight: 700;
   color: color-mix(in srgb, var(--paper) 55%, transparent);
+}
+
+.go {
+  height: 0;
+  overflow: hidden;
+  font-style: italic;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--red);
+  opacity: 0;
+  transition:
+    height 0.25s,
+    opacity 0.25s;
 }
 
 /* ---- Selected fighter ------------------------------------ */
@@ -354,6 +529,83 @@
   transform: translate(-50%, -50%) scale(1);
 }
 
+.band[data-selected] .wash {
+  opacity: 1;
+}
+
+.band[data-selected] .rays {
+  opacity: 0.5;
+  transform: translateY(-50%) scale(1);
+  animation: spin 40s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.band[data-selected] .cursor {
+  transform: none;
+}
+
+.band[data-selected] .hanko {
+  transform: rotate(6deg) scale(1.12);
+}
+
+.band[data-selected] .name {
+  opacity: 1;
+  transform: scale(1.04);
+}
+
+.band[data-selected] .meta i {
+  width: 44px;
+}
+
+.band[data-selected] .go {
+  height: 22px;
+  margin-top: 6px;
+  opacity: 1;
+  animation: blink 1s steps(2, jump-none) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+/* ---- Footer hint ----------------------------------------- */
+.hint {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 8px 32px 12px;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--paper) 45%, transparent);
+}
+
+.hint kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  margin-right: 3px;
+  border: 1.5px solid currentColor;
+  border-radius: 4px;
+  font-family: "DejaVu Sans", "Segoe UI Symbol", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0;
+}
+
+.credit {
+  margin-left: auto;
+}
+
 .band:focus-visible .name {
   text-decoration: underline;
   text-decoration-color: var(--c);
@@ -361,7 +613,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fighter {
+  .fighter,
+  .band,
+  .title em::after,
+  .band[data-selected] .rays,
+  .band[data-selected] .go {
     animation: none;
   }
 }
@@ -375,8 +631,19 @@
   .round,
   .dojo,
   .special,
-  .host {
+  .host,
+  .hint {
     display: none;
+  }
+
+  .rays {
+    right: -150px;
+    width: 420px;
+  }
+
+  .cursor {
+    top: 8px;
+    font-size: 11px;
   }
 
   .roster {
