@@ -354,27 +354,7 @@
   .taskApp { display: none; }
 }
 
-/* ----- Projects flyout ------------------------------------ */
-.startSub {
-  position: relative;
-}
-.startItemButton {
-  width: 100%;
-  appearance: none;
-  border: 0;
-  background: none;
-  font: inherit;
-  text-align: left;
-}
-.startItemButton[data-open="true"] {
-  background: var(--w95-navy);
-  color: #fff;
-}
-.startArrow {
-  margin-left: auto;
-  padding-left: 12px;
-  font-size: 10px;
-}
+/* ----- Projects link ------------------------------------ */
 /* A little manila folder */
 .folderIcon {
   position: relative;
@@ -395,61 +375,4 @@
   background: #ffd84a;
   border: 1px solid #7a5c00;
   border-bottom: 0;
-}
-.startFlyout {
-  position: absolute;
-  left: calc(100% + 2px);
-  top: -3px;
-  z-index: 31;
-  display: flex;
-  flex-direction: column;
-  min-width: 240px;
-  padding: 3px;
-  background: var(--w95-face);
-  border: 2px solid;
-  border-color: var(--w95-hi) var(--w95-dk) var(--w95-dk) var(--w95-hi);
-  box-shadow: inset 1px 1px 0 var(--w95-soft), inset -1px -1px 0 var(--w95-lo),
-    2px 2px 0 rgba(0, 0, 0, 0.35);
-}
-.projectItem {
-  padding-top: 4px;
-  padding-bottom: 4px;
-}
-.projectText {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.2;
-}
-.projectText small {
-  font-size: 11px;
-  color: var(--w95-lo);
-}
-.projectItem:hover small,
-.projectItem:focus-visible small {
-  color: #c8c8ff;
-}
-/* An "application" icon: a tiny window with the project's initial */
-.exeIcon {
-  flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  padding-top: 3px;
-  background: linear-gradient(var(--w95-navy) 0 4px, #fff 4px);
-  border: 1px solid var(--w95-dk);
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--w95-navy);
-}
-
-/* On phones there's no room beside the menu: open the flyout inline. */
-@media (max-width: 560px) {
-  .startFlyout {
-    position: static;
-    min-width: 0;
-    margin: 2px 0 2px 16px;
-    box-shadow: none;
-    border-color: var(--w95-lo) var(--w95-hi) var(--w95-hi) var(--w95-lo);
-  }
 }

@@ -410,12 +410,13 @@
   }
 }
 
-/* ----- Course select: the projects as planets on a route -- */
+/* ----- Course select: a link to the projects page -------- */
 .coursesBtn {
   padding: 8px 10px;
   font: inherit;
   font-size: 9px;
   color: var(--sf-gold);
+  text-decoration: none;
   background: var(--sf-panel);
   border: 3px solid var(--sf-steel);
   box-shadow: 3px 3px 0 #000;
@@ -425,89 +426,6 @@
 .coursesBtn:focus-visible {
   border-color: var(--sf-gold);
 }
-.courseScreen {
-  z-index: 5;
-  background: repeating-conic-gradient(rgba(0, 8, 30, 0.92) 0 25%, rgba(0, 8, 30, 0.8) 0 50%) 0 0 / 4px 4px;
-}
-.courses {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-}
-.coursesTitle {
-  margin: 0;
-  font-size: 14px;
-  color: var(--sf-gold);
-  text-shadow: 3px 3px 0 #a04000;
-  letter-spacing: 2px;
-}
-.map {
-  position: relative;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px 4px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-/* The dotted flight path that strings the planets together */
-.map::before {
-  content: "";
-  position: absolute;
-  left: 50px;
-  right: 50px;
-  top: 24px;
-  border-top: 3px dashed var(--sf-gold);
-  opacity: 0.7;
-}
-.planet {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  width: 112px;
-  color: #fff;
-  text-decoration: none;
-}
-.orb {
-  width: 44px;
-  height: 44px;
-  margin-bottom: 4px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, var(--lit), var(--dark) 62%, #000 100%);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--lit) 60%, transparent);
-  transition: transform 0.15s steps(3);
-}
-.planet:hover .orb,
-.planet:focus-visible .orb {
-  transform: scale(1.15);
-  outline: 3px solid var(--sf-gold);
-  outline-offset: 5px;
-}
-.planet:focus-visible {
-  outline: none;
-}
-.planet:hover .planetName,
-.planet:focus-visible .planetName {
-  color: var(--sf-gold);
-}
-.planetName {
-  font-size: 9px;
-  text-transform: uppercase;
-  background: rgba(0, 0, 0, 0.6);
-  padding: 2px 3px;
-}
-.planetShort {
-  font-size: 7px;
-  line-height: 1.5;
-  color: var(--sf-steel);
-  background: rgba(0, 0, 0, 0.6);
-  padding: 0 3px;
-}
-
 .srOnly {
   position: absolute;
   width: 1px;
@@ -582,14 +500,6 @@
     padding-top: 64px;
     justify-content: flex-start;
     overflow-y: auto;
-  }
-
-  .planet {
-    width: 96px;
-  }
-
-  .map::before {
-    display: none;
   }
 
   .tally {

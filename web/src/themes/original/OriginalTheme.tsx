@@ -1,10 +1,11 @@
 "use client";
 import styles from "./original.module.css";
+import Link from "next/link";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Major_Mono_Display } from "next/font/google";
 import EffectCanvas from "./EffectCanvas";
-import { WORD, SSH_COMMAND, SOCIALS, PROJECTS, COPY_FEEDBACK_MS } from "../shared/content";
+import { WORD, SSH_COMMAND, SOCIALS, COPY_FEEDBACK_MS } from "../shared/content";
 
 // This design's typeface. Declared here rather than in the root layout so it's
 // only downloaded when this design is the one rolled. Next preloads fonts for
@@ -169,28 +170,14 @@ export default function OriginalTheme() {
         </nav>
       </div>
 
-      <section className={styles.projects} aria-labelledby="projects-heading">
-        <h2 id="projects-heading" className={styles.projectsCmd}>
-          <span className={styles.terminalPrompt}>$</span> <span className={styles.terminalKeyword}>ls</span>{" "}
-          ~/projects
-        </h2>
-        <ul className={styles.projectList}>
-          {PROJECTS.map((p, i) => (
-            <li key={p.name}>
-              <a
-                className={styles.projectLink}
-                href={p.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ ["--accent"]: HIGHLIGHT_PALETTE[i % HIGHLIGHT_PALETTE.length] } as CSSProperties}
-              >
-                <span className={styles.projectName}>{p.slug}/</span>
-                <span className={styles.projectBlurb}>{p.blurb}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <Link
+        className={styles.projects}
+        href="/projects"
+        style={{ ["--accent"]: HIGHLIGHT_PALETTE[0] } as CSSProperties}
+      >
+        <span className={styles.terminalPrompt}>$</span> <span className={styles.terminalKeyword}>cd</span>{" "}
+        <span className={styles.projectName}>~/projects</span>
+      </Link>
     </main>
   );
 }

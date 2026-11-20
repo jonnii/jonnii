@@ -12,7 +12,8 @@ config.autoAddCss = false;
 // attribute on mount, so the design always matches the painted background.
 // An optional `?theme=<id>` query param pins a specific design (handy for
 // sharing or debugging a particular look) without breaking the random default.
-const themeScript = `(function(){try{var t=${JSON.stringify(
+// The projects page has one look of its own, so it skips the roll.
+const themeScript = `(function(){try{if(location.pathname.indexOf("/projects")===0){document.documentElement.setAttribute("data-theme","projects");return;}var t=${JSON.stringify(
   THEME_IDS
 )};var q=new URLSearchParams(location.search).get("theme");var c=t.indexOf(q)>=0?q:t[Math.floor(Math.random()*t.length)];document.documentElement.setAttribute("data-theme",c);}catch(e){}})();`;
 

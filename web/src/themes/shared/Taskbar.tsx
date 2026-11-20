@@ -1,12 +1,12 @@
 "use client";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useEffect, useState, type CSSProperties } from "react";
-import { PROJECTS, SOCIALS } from "./content";
+import { SOCIALS } from "./content";
 import { THEMES } from "../registry";
 import ProjectsFolder from "./ProjectsFolder";
 import styles from "./taskbar.module.css";
 
-// The shared Win95 taskbar: a Start button whose menu has a Projects flyout,
+// The shared Win95 taskbar: a Start button whose menu links to the projects page,
 // lists the themes (the active one ticked), the socials and a shuffle entry; an app button; and a
 // system tray with the social icons and a live clock. Also puts the Projects
 // folder on the desktop. Used by every
@@ -35,7 +35,7 @@ interface TaskbarProps {
   iconVariant?: "grid" | "card" | "mine" | "tree";
   /** Optional click handler for the app button (e.g. restore a dialog). */
   onAppClick?: () => void;
-  /** Put the Projects folder on the desktop (off where the theme shows them itself). */
+  /** Put the Projects folder (a link to the projects page) on the desktop. */
   projectsFolder?: boolean;
 }
 
@@ -77,7 +77,6 @@ export default function Taskbar({
 }: TaskbarProps) {
   const [clock, setClock] = useState("");
   const [startOpen, setStartOpen] = useState(false);
-  const [projectsOpen, setProjectsOpen] = useState(false);
 
   // Live taskbar clock — client-only mount, so no hydration mismatch.
   useEffect(() => {
@@ -94,10 +93,7 @@ export default function Taskbar({
   useEffect(() => {
     if (!startOpen) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setStartOpen(false);
-        setProjectsOpen(false);
-      }
+      if (e.key === "Escape") setStartOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -112,10 +108,7 @@ export default function Taskbar({
             <>
               <div
                 className={styles.startOverlay}
-                onClick={() => {
-                  setStartOpen(false);
-                  setProjectsOpen(false);
-                }}
+                onClick={() => setStartOpen(false)}
               />
               <div className={styles.startMenu} role="menu">
                 <div className={styles.startBanner} aria-hidden="true">
@@ -124,50 +117,10 @@ export default function Taskbar({
                   </span>
                 </div>
                 <div className={styles.startList}>
-                  <div
-                    className={styles.startSub}
-                    onMouseEnter={() => setProjectsOpen(true)}
-                    onMouseLeave={() => setProjectsOpen(false)}
-                  >
-                    <button
-                      type="button"
-                      className={`${styles.startItem} ${styles.startItemButton}`}
-                      role="menuitem"
-                      aria-haspopup="menu"
-                      aria-expanded={projectsOpen}
-                      data-open={projectsOpen ? "true" : undefined}
-                      onClick={() => setProjectsOpen(true)}
-                    >
-                      <span className={styles.folderIcon} aria-hidden="true" />
-                      Projects
-                      <span className={styles.startArrow} aria-hidden="true">
-                        ▸
-                      </span>
-                    </button>
-                    {projectsOpen && (
-                      <div className={styles.startFlyout} role="menu" aria-label="Projects">
-                        {PROJECTS.map((p) => (
-                          <a
-                            key={p.name}
-                            href={p.href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={`${styles.startItem} ${styles.projectItem}`}
-                            role="menuitem"
-                            title={p.blurb}
-                          >
-                            <span className={styles.exeIcon} aria-hidden="true">
-                              {p.name.charAt(0)}
-                            </span>
-                            <span className={styles.projectText}>
-                              <span>{p.name}</span>
-                              <small>{p.short}</small>
-                            </span>
-                          </a>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <a href="/projects" className={styles.startItem} role="menuitem">
+                    <span className={styles.folderIcon} aria-hidden="true" />
+                    Projects
+                  </a>
 
                   <div className={styles.startSep} />
 

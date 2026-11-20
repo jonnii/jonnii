@@ -164,6 +164,20 @@ html[data-theme="starfox"] {
   color-scheme: dark;
 }
 
+/* ---- Projects page (not a theme) -----------------------
+   The fighting-game character select at /projects has a
+   single look; its bands live in app/projects. ------------ */
+html[data-theme="projects"] {
+  --background: #15120f;
+  --foreground: #f4ecdc;
+  --muted: #8a8070;
+  --muted-strong: #f4ecdc;
+  --link: #f4ecdc;
+  --link-hover: #d7263d;
+
+  color-scheme: dark;
+}
+
 /* ---- Structural reset ------------------------------------ */
 html,
 body {
